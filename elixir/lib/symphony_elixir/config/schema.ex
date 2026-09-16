@@ -298,6 +298,8 @@ defmodule SymphonyElixir.Config.Schema do
 
     @modes ["live", "demo"]
 
+    @type t :: %__MODULE__{}
+
     @primary_key false
     embedded_schema do
       field(:enabled, :boolean, default: false)
@@ -346,20 +348,22 @@ defmodule SymphonyElixir.Config.Schema do
 
     defp validate_absolute_data_root(changeset) do
       validate_change(changeset, :data_root, fn :data_root, raw ->
-        case Schema.resolve_path_token(raw) do
-          # An unset environment reference resolves to nothing, so the workbench
-          # would start without a data root. Fail the config instead of guessing.
-          nil ->
-            [data_root: "must resolve to an absolute path; the referenced environment variable is not set"]
-
-          resolved ->
-            if Path.type(resolved) == :absolute do
-              []
-            else
-              [data_root: "must be an absolute path so it cannot resolve into the workspace root"]
-            end
-        end
+        data_root_error(Schema.resolve_path_token(raw))
       end)
+    end
+
+    defp data_root_error(nil) do
+      # An unset environment reference resolves to nothing, so the workbench
+      # would start without a data root. Fail the config instead of guessing.
+      [data_root: "must resolve to an absolute path; the referenced environment variable is not set"]
+    end
+
+    defp data_root_error(resolved) do
+      if Path.type(resolved) == :absolute do
+        []
+      else
+        [data_root: "must be an absolute path so it cannot resolve into the workspace root"]
+      end
     end
   end
 

@@ -1,0 +1,40 @@
+[
+  {
+    "kind": "request",
+    "request_id": "open-1",
+    "command": "open",
+    "payload": {
+      "session_id": "pty-test-1",
+      "port": "/dev/pts/EXAMPLE",
+      "baudrate": 115200,
+      "bytesize": "8",
+      "parity": "N",
+      "stopbits": "1",
+      "read_timeout_ms": 100
+    }
+  },
+  {
+    "kind": "response",
+    "request_id": "open-1",
+    "status": "ok",
+    "error": null
+  },
+  {
+    "kind": "data",
+    "session_id": "pty-test-1",
+    "source_seq": 1,
+    "received_at": "2026-09-14T10:38:00Z",
+    "monotonic_ns": 1000,
+    "payload_base64": "AP9BCg=="
+  },
+  {
+    "kind": "gap",
+    "session_id": "pty-test-1",
+    "source_seq": 2,
+    "received_at": "2026-09-14T10:38:00Z",
+    "monotonic_ns": 2000,
+    "from_seq": null,
+    "to_seq": null,
+    "reason": "PTY fixture disconnect"
+  }
+]

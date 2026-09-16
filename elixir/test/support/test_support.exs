@@ -122,6 +122,7 @@ defmodule SymphonyElixir.TestSupport do
           observability_enabled: true,
           observability_refresh_ms: 1_000,
           observability_render_interval_ms: 16,
+          workbench: nil,
           server_port: nil,
           server_host: nil,
           prompt: @workflow_prompt
@@ -160,6 +161,7 @@ defmodule SymphonyElixir.TestSupport do
     observability_enabled = Keyword.get(config, :observability_enabled)
     observability_refresh_ms = Keyword.get(config, :observability_refresh_ms)
     observability_render_interval_ms = Keyword.get(config, :observability_render_interval_ms)
+    workbench = Keyword.get(config, :workbench)
     server_port = Keyword.get(config, :server_port)
     server_host = Keyword.get(config, :server_host)
     prompt = Keyword.get(config, :prompt)
@@ -196,6 +198,7 @@ defmodule SymphonyElixir.TestSupport do
         "  stall_timeout_ms: #{yaml_value(codex_stall_timeout_ms)}",
         hooks_yaml(hook_after_create, hook_before_run, hook_after_run, hook_before_remove, hook_timeout_ms),
         observability_yaml(observability_enabled, observability_refresh_ms, observability_render_interval_ms),
+        workbench_yaml(workbench),
         server_yaml(server_port, server_host),
         "---",
         prompt
@@ -263,6 +266,19 @@ defmodule SymphonyElixir.TestSupport do
       "  dashboard_enabled: #{yaml_value(enabled)}",
       "  refresh_ms: #{yaml_value(refresh_ms)}",
       "  render_interval_ms: #{yaml_value(render_interval_ms)}"
+    ]
+    |> Enum.join("\n")
+  end
+
+  defp workbench_yaml(nil), do: nil
+
+  defp workbench_yaml(workbench) when is_map(workbench) do
+    [
+      "workbench:",
+      workbench
+      |> Enum.map(fn {key, value} -> "  #{key}: #{yaml_value(value)}" end)
+      |> Enum.sort()
+      |> Enum.join("\n")
     ]
     |> Enum.join("\n")
   end
