@@ -13,6 +13,7 @@ defmodule SymphonyElixir.Experience.Supervisor do
 
   alias SymphonyElixir.Config
   alias SymphonyElixir.Config.Schema
+  alias SymphonyElixir.Devices.Manager
   alias SymphonyElixir.Experience.{DemoAdapter, Store}
 
   @spec start_link(keyword()) :: Supervisor.on_start()
@@ -46,15 +47,26 @@ defmodule SymphonyElixir.Experience.Supervisor do
   defp build_children(workbench, data_root, workspace_root) do
     case Store.validate_data_root(data_root, workspace_root) do
       :ok ->
-        [{Store, name: Store, data_root: data_root, workspace_root: workspace_root}] ++ demo_children(workbench)
+        [{Store, name: Store, data_root: data_root, workspace_root: workspace_root}] ++
+          demo_children(workbench) ++ device_children(workbench)
 
       {:error, code, details} ->
         # A bad data root disables durable engineering records; it must not take
         # the scheduler or the rest of the application down with it.
         Logger.error("Workbench store disabled: #{code} #{inspect(details)}")
-        demo_children(workbench)
+        demo_children(workbench) ++ device_children(workbench)
     end
   end
+
+  # A host that registered a device inventory gets the manager that serves it.
+  # The inventory is the host's own file and nothing else may add a device, so a
+  # workbench with no device_config starts no manager at all rather than one with
+  # an empty inventory.
+  defp device_children(%Schema.Workbench{device_config: path}) when is_binary(path) and path != "" do
+    [{Manager, config_path: path}]
+  end
+
+  defp device_children(_workbench), do: []
 
   # Only the isolated demonstration provider runs inside the workbench subtree;
   # the live provider is reached through the host tracker client.

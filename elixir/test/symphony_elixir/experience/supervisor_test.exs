@@ -1,6 +1,7 @@
 defmodule SymphonyElixir.Experience.SupervisorTest do
   use SymphonyElixir.TestSupport
 
+  alias SymphonyElixir.Devices.Manager
   alias SymphonyElixir.Experience.{DemoAdapter, Store, Supervisor}
 
   setup do
@@ -72,6 +73,24 @@ defmodule SymphonyElixir.Experience.SupervisorTest do
     assert {:ok, _settings} = SymphonyElixir.Config.settings()
 
     assert [{DemoAdapter, []}] = Supervisor.children()
+  end
+
+  test "starts the device manager only when the host registered an inventory", context do
+    devices = Path.join(context.root, "devices.yaml")
+    File.write!(devices, "schema_version: \"1.0\"\nhost_id: \"test-host\"\ndevices: []\n")
+
+    write(context, workbench(context, %{"mode" => "demo", "device_config" => devices}))
+
+    assert [{Store, _opts}, {DemoAdapter, []}, {Manager, manager_opts}] = Supervisor.children()
+    assert manager_opts[:config_path] == devices
+  end
+
+  test "a workbench without a device inventory starts no device manager", context do
+    write(context, workbench(context, %{"mode" => "demo"}))
+
+    # An empty inventory is not the same as no inventory: a host that registered
+    # no file gets no manager, so a device can never appear from nowhere.
+    refute Enum.any?(Supervisor.children(), &match?({Manager, _opts}, &1))
   end
 
   test "the supervisor starts and stops with the application", context do
