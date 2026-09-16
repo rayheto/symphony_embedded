@@ -475,6 +475,30 @@ defmodule SymphonyElixir.Experience.StoreTest do
     end
   end
 
+  describe "evidence and the workspace" do
+    test "evidence does not live where a workspace cleanup can reach it", %{store: store, root: root} do
+      workspace = Path.join(root, "workspaces")
+      File.mkdir_p!(Path.join(workspace, "issue-1"))
+
+      # The data root may not sit inside a workspace: cleaning one must never be
+      # able to delete evidence.
+      assert {:error, :data_root_inside_workspace, %{}} =
+               Store.validate_data_root(Path.join(workspace, "data"), workspace)
+
+      {:ok, receipt} = Store.put_blob(@project, "captured bytes", "application/octet-stream", server: store)
+
+      {:ok, _record} =
+        Store.append(@project, "Evidence", "ev-1", 0, payload(%{"blob_sha256" => receipt["sha256"]}), @agent, server: store)
+
+      # Cleaning the workspace, as a run teardown does, leaves the evidence whole.
+      File.rm_rf!(workspace)
+
+      assert {:ok, record} = Store.get(@project, "Evidence", "ev-1", server: store)
+      assert record.payload["blob_sha256"] == receipt["sha256"]
+      assert {:ok, "captured bytes"} = Store.get_blob(@project, receipt["sha256"], server: store)
+    end
+  end
+
   describe "verification and restore" do
     test "refuses to write a backup inside the root it is copying", %{store: store, root: root} do
       assert {:error, :backup_inside_data_root, %{}} = Store.backup(Path.join(root, "copy"), server: store)

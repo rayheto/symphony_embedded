@@ -10,7 +10,12 @@ defmodule SymphonyElixir.Experience.OperationsTest do
     root = Path.join(System.tmp_dir!(), "symphony-ops-#{System.unique_integer([:positive])}")
     File.mkdir_p!(root)
     store = Module.concat(__MODULE__, :"Store#{System.unique_integer([:positive])}")
-    start_supervised!({Store, name: store, data_root: root})
+
+    start_supervised!(%{
+      id: store,
+      start: {Store, :start_link, [[name: store, data_root: root]]},
+      restart: :transient
+    })
 
     demo = Module.concat(__MODULE__, :"Demo#{System.unique_integer([:positive])}")
     start_supervised!({DemoAdapter, name: demo})
@@ -132,6 +137,68 @@ defmodule SymphonyElixir.Experience.OperationsTest do
       {:ok, issue} = DemoAdapter.get_issue("demo-issue-42", demo_state: demo)
       assert issue.state == "In Progress"
       assert store == context.store
+    end
+
+    test "a full data root refuses a second writer, naming the holder", context do
+      root = Store.data_root(context.store)
+      other = Module.concat(__MODULE__, :"Second#{System.unique_integer([:positive])}")
+
+      # A store that cannot take the lock refuses to start; because the starter is
+      # linked, that refusal also arrives as an exit signal, so this process traps
+      # exits for the duration of the check.
+      previous = Process.flag(:trap_exit, true)
+      on_exit(fn -> Process.flag(:trap_exit, previous) end)
+
+      assert {:error, {:store_start_failed, :data_root_locked, %{holder: holder}}} =
+               Store.start_link(name: other, data_root: root)
+
+      assert holder =~ System.pid()
+    end
+
+    test "a restart neither resumes a paused issue nor forgets the receipt", context do
+      project = project(context)
+
+      assert {:ok, paused} = Operations.submit(project, @actor, pause_request("key-pause-restart"), opts(context))
+      assert paused["status"] == "applied"
+
+      # The records are the only truth about what the workbench did, so a restart
+      # is measured against the bytes on disk first.
+      root = Store.data_root(context.store)
+      journal = Path.join([root, "projects", @project_id, "records.jsonl"])
+      assert File.read!(journal) =~ "key-pause-restart"
+
+      :ok = stop_supervised!(context.store)
+
+      # A restart inside one test process is still the same OS process, and the
+      # lock names the OS process that holds it — so it is cleared here the way an
+      # operator would after a crash. That the lock is honoured while a holder is
+      # alive is asserted above.
+      File.rm(Path.join(root, "store.lock"))
+
+      start_supervised!(%{
+        id: context.store,
+        start: {Store, :start_link, [[name: context.store, data_root: root]]},
+        restart: :transient
+      })
+
+      # The provider still holds the paused state: nothing in the workbench turned
+      # the issue back on while it was starting.
+      {:ok, issue} = DemoAdapter.get_issue("demo-issue-42", demo_state: context.demo)
+      assert issue.state == "Human Review"
+
+      # The receipt survives, under the same idempotency key.
+      assert {:ok, reloaded} = Operations.get(project, paused["id"], opts(context))
+      assert reloaded["idempotency_key"] == "key-pause-restart"
+      assert reloaded["status"] == "applied"
+
+      # Re-sending the same request after the restart is the same operation: not a
+      # second pause, and not a resume.
+      assert {:ok, again} = Operations.submit(project, @actor, pause_request("key-pause-restart"), opts(context))
+      assert again["id"] == paused["id"]
+      assert again["action"] == "pause_issue"
+
+      {:ok, issue} = DemoAdapter.get_issue("demo-issue-42", demo_state: context.demo)
+      assert issue.state == "Human Review"
     end
 
     test "refuses a resume without a target state", %{store: store} = context do

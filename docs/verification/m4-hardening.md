@@ -46,6 +46,9 @@
 | data root 必须在 workspace 之外 | `store_test.exs` "data root rules" |
 | 事件游标、重复事件、过期游标 | `store_test.exs` "events"、"event broadcasting" |
 | 跨 project 引用与实体守卫 | `store_test.exs` "project id and entity guards" |
+| 暂停跨重启有效（重启不恢复暂停、不丢回执、同 idempotency 不二次暂停） | `operations_test.exs` "pause and resume" |
+| 同一 data root 拒绝第二个写入者并报出持有者 | `operations_test.exs` "pause and resume" |
+| 证据不随 workspace 清理消失（data root 不得在 workspace 之内） | `store_test.exs` "evidence and the workspace" |
 | 采用方案的分步回执 | `operations_test.exs` "adopting a decision" |
 | 租约代次、过期、owner/generation 拒绝 | `manager_test.exs` "leases"、"actions" |
 
