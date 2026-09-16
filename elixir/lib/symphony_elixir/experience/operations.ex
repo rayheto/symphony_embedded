@@ -306,20 +306,26 @@ defmodule SymphonyElixir.Experience.Operations do
   defp not_already_adopted(%{"status" => "adopted"}), do: {:error, :already_adopted, %{}}
   defp not_already_adopted(_decision), do: :ok
 
+  # Adopting keeps whatever the decision already carried unless the caller
+  # supplies its own constraints or limitations.
   defp adopted_payload(decision, option, request, actor) do
     decision
     |> Map.put("status", "adopted")
     |> Map.put("selected_option_id", option["id"])
-    |> Map.put("constraints", List.wrap(request.payload["constraints"]) |> Enum.uniq() |> keep_existing(decision))
-    |> Map.put("limitations", List.wrap(request.payload["limitations"]) |> keep_existing(decision))
+    |> Map.put("constraints", or_keep(request.payload["constraints"], decision["constraints"]))
+    |> Map.put("limitations", or_keep(request.payload["limitations"], decision["limitations"]))
     |> Map.put("plan_revision", next_plan_revision(decision))
     |> Map.put("actor", actor)
     |> Map.put("adopted_at", now())
     |> Map.put("supersedes", nil)
   end
 
-  defp keep_existing([], current), do: current
-  defp keep_existing(given, _current), do: given
+  defp or_keep(given, current) do
+    case List.wrap(given) do
+      [] -> List.wrap(current)
+      values -> Enum.uniq(values)
+    end
+  end
 
   defp next_plan_revision(decision) do
     case decision["plan_revision"] do
@@ -694,7 +700,26 @@ defmodule SymphonyElixir.Experience.Operations do
     end
   end
 
+  # The wire contract requires a chosen option and a non-empty constraint list,
+  # so a request that omits them is refused rather than silently doing nothing.
+  defp validate_payload(%{action: "adopt_decision", payload: payload}) do
+    if non_blank?(payload["option_id"]) do
+      :ok
+    else
+      {:error, :invalid_payload, %{action: "adopt_decision", reason: "option_id must be chosen"}}
+    end
+  end
+
+  defp validate_payload(%{action: "adjust_constraints", payload: payload}) do
+    case List.wrap(payload["constraints"]) do
+      [] -> {:error, :invalid_payload, %{action: "adjust_constraints", reason: "constraints must not be empty"}}
+      values -> if Enum.all?(values, &non_blank?/1), do: :ok, else: {:error, :invalid_payload, %{reason: "constraints must not be blank"}}
+    end
+  end
+
   defp validate_payload(_request), do: :ok
+
+  defp non_blank?(value), do: is_binary(value) and String.trim(value) != ""
 
   # The key is part of the digest so two different keys with identical content
   # are two distinct operations rather than a revision conflict on one id.

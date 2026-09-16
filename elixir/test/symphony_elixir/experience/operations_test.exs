@@ -320,6 +320,36 @@ defmodule SymphonyElixir.Experience.OperationsTest do
       assert store == context.store
     end
 
+    test "refuses an empty constraint list", %{store: store} = context do
+      seed_decision(context)
+
+      request = %{
+        action: "adjust_constraints",
+        idempotency_key: "key-constraints-0004",
+        expected_revision: 1,
+        payload: %{
+          "issue_id" => "demo-issue-42",
+          "provider_version" => "v1",
+          "decision_id" => "decision-EMB-40",
+          "constraints" => [],
+          "resume_after_apply" => false,
+          "resume_target_state" => nil
+        }
+      }
+
+      assert {:error, :invalid_payload, %{action: "adjust_constraints"}} = Operations.submit(project(context), @actor, request, opts(context))
+      assert length(Store.list_revisions(@project_id, "Decision", server: store)) == 1
+    end
+
+    test "refuses an adopt with no chosen option", %{store: store} = context do
+      seed_decision(context)
+
+      assert {:error, :invalid_payload, %{action: "adopt_decision"}} =
+               Operations.submit(project(context), @actor, adopt_request("key-adopt-0020", %{"option_id" => ""}), opts(context))
+
+      assert store == context.store
+    end
+
     test "refuses to edit a superseded decision", %{store: store} = context do
       seed_decision(context, %{"status" => "superseded"})
 

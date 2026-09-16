@@ -34,6 +34,8 @@ defmodule SymphonyElixirWeb.Router do
     get("/workbench", WorkbenchEntryController, :index)
     live("/workbench/issues", Workbench.IssuesLive, :index)
     live("/workbench/issues/:identifier", Workbench.IssueDetailLive, :show)
+    live("/workbench/reviews", Workbench.ReviewsLive, :index)
+    live("/workbench/reviews/:decision_id", Workbench.ReviewsLive, :show)
   end
 
   scope "/", SymphonyElixirWeb do

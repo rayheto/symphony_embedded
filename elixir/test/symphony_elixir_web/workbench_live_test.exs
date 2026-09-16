@@ -41,7 +41,10 @@ defmodule SymphonyElixirWeb.WorkbenchLiveTest do
         "mode" => "demo",
         "project_id" => "embedded-lab-demo",
         "data_root" => root,
-        "display_states" => ["待办", "进行中", "待审阅", "已完成"]
+        "display_states" => ["待办", "进行中", "待审阅", "已完成"],
+        # Human Review is the demonstration project's non-active, non-terminal
+        # state, which is what a persistent pause needs.
+        "paused_state" => "Human Review"
       }
     )
 
@@ -455,6 +458,220 @@ defmodule SymphonyElixirWeb.WorkbenchLiveTest do
     assert html =~ "received：confirmed"
   end
 
+  test "the review list shows the decisions and reviews that were recorded" do
+    seed_decision()
+    seed_review()
+
+    {:ok, _view, html} = live(build_conn(), "/workbench/reviews")
+
+    assert html =~ "decision-EMB-40"
+    assert html =~ "draft"
+    assert html =~ "r12"
+    assert html =~ "changes_requested"
+    assert html =~ "还需要一次真机复测"
+  end
+
+  test "selecting a candidate writes nothing until adopt is submitted" do
+    seed_decision()
+
+    {:ok, view, _html} = live(build_conn(), "/workbench/reviews/decision-EMB-40")
+
+    assert render(view) =~ "先选择一个候选方案。"
+
+    view |> element("input#option-A") |> render_click()
+
+    assert render(view) =~ "将采用方案 A"
+    assert render(view) =~ "这只是候选选择，提交后才会记录决定"
+
+    # No operation was submitted, so the store still holds only the draft.
+    assert [decision] = Store.list("embedded-lab-demo", "Decision")
+    assert decision.payload["status"] == "draft"
+    assert decision.payload["selected_option_id"] == nil
+  end
+
+  test "adopting a candidate records the decision and publishes the plan" do
+    seed_decision()
+
+    {:ok, view, _html} = live(build_conn(), "/workbench/reviews/decision-EMB-40")
+
+    html =
+      view
+      |> form("form[phx-submit='adopt']", %{"adopt" => %{"option_id" => "A"}})
+      |> render_submit()
+
+    assert html =~ "adopt_decision"
+    assert html =~ "applied"
+
+    revisions = Store.list_revisions("embedded-lab-demo", "Decision")
+    assert Enum.map(revisions, & &1.entity_revision) == [1, 2]
+
+    adopted = List.last(revisions)
+    assert adopted.payload["status"] == "adopted"
+    assert adopted.payload["selected_option_id"] == "A"
+    assert adopted.payload["constraints"] == ["优先保证稳定性"]
+    assert adopted.payload["actor"]["kind"] == "human"
+
+    # The issue is paused so the new plan is the one the next executor reads.
+    {:ok, issue} = DemoAdapter.get_issue("demo-issue-42")
+    assert issue.state == "Human Review"
+
+    assert {:ok, %{plan: plan}} = DemoAdapter.get_workpad("demo-issue-42")
+    assert plan["plan_revision"] == "r13"
+  end
+
+  test "the adopt button stays disabled without a selection" do
+    seed_decision()
+
+    {:ok, view, _html} = live(build_conn(), "/workbench/reviews/decision-EMB-40")
+
+    assert has_element?(view, "button[type='submit'][disabled]", "采用方案")
+  end
+
+  test "editing the constraints of a draft candidate publishes no plan" do
+    seed_decision()
+
+    {:ok, view, _html} = live(build_conn(), "/workbench/reviews/decision-EMB-40")
+
+    html =
+      view
+      |> form("form[phx-submit='adjust-constraints']", %{"constraints" => %{"body" => "稳定性优先\n不做双缓冲"}})
+      |> render_submit()
+
+    assert html =~ "adjust_constraints"
+    assert html =~ "applied"
+
+    assert [first, second] = Store.list_revisions("embedded-lab-demo", "Decision")
+    assert length([first, second]) == 2
+    assert second.payload["constraints"] == ["稳定性优先", "不做双缓冲"]
+    assert second.payload["status"] == "draft"
+
+    # A draft edit must not change what the executor will read.
+    assert {:ok, nil} = DemoAdapter.get_workpad("demo-issue-42")
+  end
+
+  test "an adopt with no candidate is refused instead of guessing" do
+    seed_decision()
+
+    {:ok, view, _html} = live(build_conn(), "/workbench/reviews/decision-EMB-40")
+
+    html = view |> form("form[phx-submit='adopt']", %{"adopt" => %{}}) |> render_submit()
+
+    assert html =~ "提交失败"
+    assert html =~ "option_id"
+
+    # Nothing was recorded, so the decision is still a draft.
+    assert [draft] = Store.list("embedded-lab-demo", "Decision")
+    assert draft.payload["status"] == "draft"
+  end
+
+  test "adopting with a resume target resumes the issue after publishing" do
+    seed_decision()
+
+    {:ok, view, _html} = live(build_conn(), "/workbench/reviews/decision-EMB-40")
+
+    view |> element("input#resume-after-apply") |> render_click()
+    view |> element("input#resume-target") |> render_change(%{"resume" => %{"target_state" => "In Progress"}})
+
+    html =
+      view
+      |> form("form[phx-submit='adopt']", %{"adopt" => %{"option_id" => "A"}})
+      |> render_submit()
+
+    assert html =~ "applied"
+
+    {:ok, issue} = DemoAdapter.get_issue("demo-issue-42")
+    assert issue.state == "In Progress"
+  end
+
+  test "the review page reports a disabled workbench instead of an empty list" do
+    write_workflow_file!(Workflow.workflow_file_path(),
+      tracker_kind: "memory",
+      tracker_api_token: nil,
+      tracker_project_slug: nil,
+      workbench: %{"enabled" => false, "mode" => "demo"}
+    )
+
+    {:ok, _view, html} = live(build_conn(), "/workbench/reviews")
+
+    assert html =~ "工作台未启用"
+  end
+
+  test "the constraints box keeps what was typed before it is saved" do
+    seed_decision()
+
+    {:ok, view, _html} = live(build_conn(), "/workbench/reviews/decision-EMB-40")
+
+    html =
+      view
+      |> form("form[phx-submit='adjust-constraints']", %{"constraints" => %{"body" => "草稿约束"}})
+      |> render_change()
+
+    assert html =~ "草稿约束"
+  end
+
+  test "a store outage is reported without taking the review page down" do
+    seed_decision()
+    GenServer.stop(Process.whereis(Store))
+
+    {:ok, _view, html} = live(build_conn(), "/workbench/reviews")
+
+    assert html =~ "审阅记录"
+    assert html =~ "还没有记录到方案决定。"
+  end
+
+  test "an unknown decision is reported instead of an empty form" do
+    {:ok, _view, html} = live(build_conn(), "/workbench/reviews/decision-missing")
+
+    assert html =~ "找不到决定 decision-missing"
+  end
+
+  defp seed_decision do
+    payload = %{
+      "id" => "decision-EMB-40",
+      "project_id" => "embedded-lab-demo",
+      "revision" => 1,
+      "issue_id" => "demo-issue-42",
+      "problem_case_ids" => ["DISP-12"],
+      "options" => [
+        %{"id" => "A", "title" => "延后释放", "proposal" => "保持单缓冲", "tradeoffs" => ["Agent 建议"], "evidence_ids" => [], "remaining_validation" => ["方案 A 仍需真机验证。"]},
+        %{"id" => "B", "title" => "双缓冲", "proposal" => "隔离读写", "tradeoffs" => ["增加内存占用"], "evidence_ids" => [], "remaining_validation" => ["内存预算"]}
+      ],
+      "status" => "draft",
+      "selected_option_id" => nil,
+      "constraints" => ["优先保证稳定性"],
+      "plan_revision" => "r12",
+      "actor" => %{"kind" => "agent", "id" => "run-1", "display_name" => "Driver Agent"},
+      "limitations" => ["现有证据尚不足以确认根因。"],
+      "supersedes" => nil
+    }
+
+    {:ok, _} =
+      Store.append("embedded-lab-demo", "Decision", payload["id"], 0, payload, %{
+        kind: "agent",
+        id: "run-1",
+        display_name: "Driver Agent"
+      })
+  end
+
+  defp seed_review do
+    {:ok, _} =
+      Store.append(
+        "embedded-lab-demo",
+        "Review",
+        "E-017",
+        0,
+        %{
+          "action" => "review",
+          "target_type" => "evidence",
+          "target_id" => "E-017",
+          "issue_id" => "demo-issue-42",
+          "body" => "还需要一次真机复测。",
+          "verdict" => "changes_requested"
+        },
+        %{kind: "human", id: "local-operator", display_name: "本机操作者"}
+      )
+  end
+
   test "the workbench reports a disabled configuration instead of a blank board" do
     write_workflow_file!(Workflow.workflow_file_path(),
       tracker_kind: "memory",
@@ -606,6 +823,14 @@ defmodule SymphonyElixirWeb.WorkbenchLiveLinearTest do
     )
 
     :ok
+  end
+
+  test "a live review page shows no demonstration notice" do
+    {:ok, _view, html} = live(build_conn(), "/workbench/reviews")
+
+    assert html =~ "审阅记录"
+    assert html =~ "还没有记录到方案决定。"
+    refute html =~ "演示数据"
   end
 
   test "a live board shows provider issues without a demonstration notice" do
