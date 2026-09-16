@@ -1742,6 +1742,12 @@ defmodule SymphonyElixir.OrchestratorStatusTest do
   end
 
   test "application stop renders offline status" do
+    # Stopping the application is process-global, and ExUnit does not fix the
+    # order of synchronous modules: without this restart, every module that runs
+    # afterwards and needs the supervision tree (WorkflowStore, HttpServer) fails
+    # with "no process" for reasons that have nothing to do with it.
+    on_exit(fn -> {:ok, _started} = Application.ensure_all_started(:symphony_elixir) end)
+
     rendered =
       ExUnit.CaptureIO.capture_io(fn ->
         assert :ok = SymphonyElixir.Application.stop(:normal)
