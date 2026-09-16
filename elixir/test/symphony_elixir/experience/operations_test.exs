@@ -28,10 +28,487 @@ defmodule SymphonyElixir.Experience.OperationsTest do
         adapter: DemoAdapter,
         store: context.store,
         display_states: ["待办", "进行中", "待审阅", "已完成"],
-        workspace_root: "/tmp/workspaces"
+        workspace_root: "/tmp/workspaces",
+        # Human Review is the demonstration project's non-active, non-terminal
+        # state, which is exactly what a persistent pause needs.
+        paused_state: "Human Review"
       },
       overrides
     )
+  end
+
+  defp decision_payload(overrides) do
+    Map.merge(
+      %{
+        "id" => "decision-EMB-40",
+        "project_id" => @project_id,
+        "revision" => 1,
+        "issue_id" => "demo-issue-40",
+        "problem_case_ids" => ["DISP-12"],
+        "options" => [
+          %{"id" => "A", "title" => "延后释放", "proposal" => "保持单缓冲", "tradeoffs" => ["Agent 建议"], "evidence_ids" => ["E-017"], "remaining_validation" => ["仍需真机验证"]},
+          %{"id" => "B", "title" => "双缓冲", "proposal" => "隔离读写", "tradeoffs" => ["增加内存占用"], "evidence_ids" => ["E-017"], "remaining_validation" => ["内存预算"]}
+        ],
+        "status" => "draft",
+        "selected_option_id" => nil,
+        "constraints" => ["优先保证稳定性"],
+        "plan_revision" => "r12",
+        "actor" => %{"kind" => "agent", "id" => "run-1", "display_name" => "Driver Agent"},
+        "limitations" => ["现有证据尚不足以确认根因。"],
+        "supersedes" => nil
+      },
+      overrides
+    )
+  end
+
+  defp retry_store do
+    root = Path.join(System.tmp_dir!(), "symphony-ops-extra-#{System.unique_integer([:positive])}")
+    File.mkdir_p!(root)
+    name = Module.concat(__MODULE__, :"ExtraStore#{System.unique_integer([:positive])}")
+    start_supervised!({Store, name: name, data_root: root})
+    on_exit(fn -> File.rm_rf(root) end)
+    name
+  end
+
+  defp seed_decision(context, overrides \\ %{}) do
+    payload = decision_payload(overrides)
+    {:ok, _} = Store.append(@project_id, "Decision", payload["id"], 0, payload, @actor, server: context.store)
+    payload
+  end
+
+  defp pause_request(key, issue_id \\ "demo-issue-42") do
+    %{
+      action: "pause_issue",
+      idempotency_key: key,
+      expected_revision: 1,
+      payload: %{"issue_id" => issue_id, "provider_version" => "v1"}
+    }
+  end
+
+  describe "pause and resume" do
+    test "writes the native pause state and reads it back", %{store: store, demo: demo} = context do
+      assert {:ok, operation} = Operations.submit(project(context), @actor, pause_request("key-pause-0001"), opts(context))
+
+      assert operation["status"] == "applied"
+      assert operation["result_entity_id"] == "demo-issue-42"
+
+      {:ok, issue} = DemoAdapter.get_issue("demo-issue-42", demo_state: demo)
+      assert issue.state == "Human Review"
+      assert store == context.store
+    end
+
+    test "refuses to pause when no pause state is configured", %{store: store} = context do
+      unconfigured = project(context, %{paused_state: nil})
+
+      assert {:ok, operation} = Operations.submit(unconfigured, @actor, pause_request("key-pause-0002"), opts(context))
+
+      assert operation["status"] == "failed"
+      assert operation["error_code"] == "unsupported_capability"
+      assert store == context.store
+    end
+
+    test "never claims a pause the provider did not reflect", %{store: store} = context do
+      ignoring = project(context, adapter: __MODULE__.IgnoringTransitionAdapter)
+
+      assert {:ok, operation} = Operations.submit(ignoring, @actor, pause_request("key-pause-0003"), opts(context))
+
+      assert operation["status"] == "outcome_unknown"
+      assert store == context.store
+    end
+
+    test "resumes to an explicitly requested active state", %{store: store, demo: demo} = context do
+      assert {:ok, _} = Operations.submit(project(context), @actor, pause_request("key-pause-0004"), opts(context))
+
+      resume = %{
+        action: "resume_issue",
+        idempotency_key: "key-resume-0001",
+        expected_revision: 1,
+        payload: %{"issue_id" => "demo-issue-42", "provider_version" => "v1", "target_state" => "In Progress"}
+      }
+
+      assert {:ok, operation} = Operations.submit(project(context), @actor, resume, opts(context))
+      assert operation["status"] == "applied"
+
+      {:ok, issue} = DemoAdapter.get_issue("demo-issue-42", demo_state: demo)
+      assert issue.state == "In Progress"
+      assert store == context.store
+    end
+
+    test "refuses a resume without a target state", %{store: store} = context do
+      resume = %{
+        action: "resume_issue",
+        idempotency_key: "key-resume-0002",
+        expected_revision: 1,
+        payload: %{"issue_id" => "demo-issue-42", "provider_version" => "v1"}
+      }
+
+      assert {:ok, operation} = Operations.submit(project(context), @actor, resume, opts(context))
+      assert operation["status"] == "failed"
+      assert operation["error_code"] == "invalid_payload"
+      assert store == context.store
+    end
+  end
+
+  describe "adopting a decision" do
+    defp adopt_request(key, overrides \\ %{}) do
+      %{
+        action: "adopt_decision",
+        idempotency_key: key,
+        expected_revision: 1,
+        payload:
+          Map.merge(
+            %{
+              "issue_id" => "demo-issue-42",
+              "provider_version" => "v1",
+              "decision_id" => "decision-EMB-40",
+              "option_id" => "A",
+              "resume_after_apply" => false,
+              "resume_target_state" => nil
+            },
+            overrides
+          )
+      }
+    end
+
+    test "records an adopted revision, pauses, and publishes the plan", %{store: store, demo: demo} = context do
+      seed_decision(context)
+
+      assert {:ok, operation} = Operations.submit(project(context), @actor, adopt_request("key-adopt-0001"), opts(context))
+
+      assert operation["status"] == "applied"
+      assert operation["result_entity_id"] == "decision-EMB-40"
+
+      {:ok, decision} = Store.get(@project_id, "Decision", "decision-EMB-40", server: store)
+      assert decision.entity_revision == 2
+      assert decision.payload["status"] == "adopted"
+      assert decision.payload["selected_option_id"] == "A"
+      assert decision.payload["plan_revision"] == "r13"
+      assert decision.payload["actor"]["kind"] == "human"
+
+      # The issue is paused before the plan is published, and the plan reference
+      # is what the next executor will read.
+      {:ok, issue} = DemoAdapter.get_issue("demo-issue-42", demo_state: demo)
+      assert issue.state == "Human Review"
+
+      assert {:ok, %{plan: plan}} = DemoAdapter.get_workpad("demo-issue-42", demo_state: demo)
+      assert plan["decision_id"] == "decision-EMB-40"
+      assert plan["plan_revision"] == "r13"
+      assert String.length(plan["decision_sha256"]) == 64
+    end
+
+    test "keeps the decision and reports which stage failed", %{store: store} = context do
+      seed_decision(context)
+      no_workpad = project(context, adapter: __MODULE__.NoWorkpadAdapter)
+
+      assert {:ok, operation} = Operations.submit(no_workpad, @actor, adopt_request("key-adopt-0002"), opts(context))
+
+      assert operation["status"] == "failed"
+      assert operation["error_code"] == "unsupported_capability"
+
+      # The human decision is durable even though the workflow update failed.
+      {:ok, decision} = Store.get(@project_id, "Decision", "decision-EMB-40", server: store)
+      assert decision.payload["status"] == "adopted"
+      assert store == context.store
+    end
+
+    test "refuses an option that is not on the decision", %{store: store} = context do
+      seed_decision(context)
+
+      assert {:ok, operation} =
+               Operations.submit(project(context), @actor, adopt_request("key-adopt-0003", %{"option_id" => "Z"}), opts(context))
+
+      assert operation["status"] == "failed"
+      assert operation["error_code"] == "unknown_option"
+      assert store == context.store
+    end
+
+    test "refuses a decision that was already adopted", %{store: store} = context do
+      seed_decision(context, %{"status" => "adopted", "selected_option_id" => "A"})
+
+      assert {:ok, operation} = Operations.submit(project(context), @actor, adopt_request("key-adopt-0004"), opts(context))
+      assert operation["error_code"] == "already_adopted"
+      assert store == context.store
+    end
+
+    test "reports an unknown decision instead of inventing one", %{store: store} = context do
+      assert {:ok, operation} =
+               Operations.submit(project(context), @actor, adopt_request("key-adopt-0005", %{"decision_id" => "missing"}), opts(context))
+
+      assert operation["error_code"] == "not_found"
+      assert store == context.store
+    end
+
+    test "resumes only when the request asked for it", %{store: store, demo: demo} = context do
+      seed_decision(context)
+
+      resumed =
+        adopt_request("key-adopt-0006", %{
+          "resume_after_apply" => true,
+          "resume_target_state" => "In Progress"
+        })
+
+      assert {:ok, operation} = Operations.submit(project(context), @actor, resumed, opts(context))
+      assert operation["status"] == "applied"
+
+      {:ok, issue} = DemoAdapter.get_issue("demo-issue-42", demo_state: demo)
+      assert issue.state == "In Progress"
+      assert store == context.store
+    end
+  end
+
+  describe "adjusting constraints" do
+    test "edits a draft candidate without publishing a plan", %{store: store, demo: demo} = context do
+      seed_decision(context)
+
+      request = %{
+        action: "adjust_constraints",
+        idempotency_key: "key-constraints-0001",
+        expected_revision: 1,
+        payload: %{
+          "issue_id" => "demo-issue-42",
+          "provider_version" => "v1",
+          "decision_id" => "decision-EMB-40",
+          "constraints" => ["稳定性优先", "不做双缓冲"],
+          "resume_after_apply" => false,
+          "resume_target_state" => nil
+        }
+      }
+
+      assert {:ok, operation} = Operations.submit(project(context), @actor, request, opts(context))
+      assert operation["status"] == "applied"
+
+      {:ok, decision} = Store.get(@project_id, "Decision", "decision-EMB-40", server: store)
+      assert decision.payload["status"] == "draft"
+      assert decision.payload["constraints"] == ["稳定性优先", "不做双缓冲"]
+      assert decision.payload["plan_revision"] == "r12"
+
+      # A draft edit must not change what the executor will read.
+      assert {:ok, nil} = DemoAdapter.get_workpad("demo-issue-42", demo_state: demo)
+    end
+
+    test "creates a new adopted revision for an already adopted decision", %{store: store, demo: demo} = context do
+      seed_decision(context)
+      assert {:ok, _} = Operations.submit(project(context), @actor, adopt_request("key-adopt-0007"), opts(context))
+
+      request = %{
+        action: "adjust_constraints",
+        idempotency_key: "key-constraints-0002",
+        expected_revision: 2,
+        payload: %{
+          "issue_id" => "demo-issue-42",
+          "provider_version" => "v1",
+          "decision_id" => "decision-EMB-40",
+          "constraints" => ["稳定性优先", "新增内存占用需说明"],
+          "resume_after_apply" => false,
+          "resume_target_state" => nil
+        }
+      }
+
+      assert {:ok, operation} = Operations.submit(project(context), @actor, request, opts(context))
+      assert operation["status"] == "applied"
+
+      {:ok, decision} = Store.get(@project_id, "Decision", "decision-EMB-40", server: store)
+      assert decision.entity_revision == 3
+      assert decision.payload["status"] == "adopted"
+      assert decision.payload["selected_option_id"] == "A"
+      assert decision.payload["plan_revision"] == "r14"
+      assert decision.payload["supersedes"] == "decision-EMB-40"
+
+      # A constraint change on an adopted plan pauses the issue again.
+      {:ok, issue} = DemoAdapter.get_issue("demo-issue-42", demo_state: demo)
+      assert issue.state == "Human Review"
+      assert store == context.store
+    end
+
+    test "refuses to edit a superseded decision", %{store: store} = context do
+      seed_decision(context, %{"status" => "superseded"})
+
+      request = %{
+        action: "adjust_constraints",
+        idempotency_key: "key-constraints-0003",
+        expected_revision: 1,
+        payload: %{
+          "issue_id" => "demo-issue-42",
+          "provider_version" => "v1",
+          "decision_id" => "decision-EMB-40",
+          "constraints" => ["x"],
+          "resume_after_apply" => false,
+          "resume_target_state" => nil
+        }
+      }
+
+      assert {:ok, operation} = Operations.submit(project(context), @actor, request, opts(context))
+      assert operation["error_code"] == "not_editable"
+      assert store == context.store
+    end
+  end
+
+  describe "direction-change edge cases" do
+    test "carries explicit constraints into the adopted revision", %{store: store} = context do
+      seed_decision(context)
+
+      request = adopt_request("key-adopt-0010", %{"constraints" => ["只做稳定性修复"], "limitations" => ["待复测"]})
+
+      assert {:ok, operation} = Operations.submit(project(context), @actor, request, opts(context))
+      assert operation["status"] == "applied"
+
+      {:ok, decision} = Store.get(@project_id, "Decision", "decision-EMB-40", server: store)
+      assert decision.payload["constraints"] == ["只做稳定性修复"]
+      assert decision.payload["limitations"] == ["待复测"]
+    end
+
+    test "numbers a plan revision from whatever the decision carried", context do
+      for {given, expected} <- [{"v1", "r1"}, {"rX", "r1"}, {"r7", "r8"}, {nil, "r1"}] do
+        store = retry_store()
+        seed = seed_decision(%{store: store}, %{"plan_revision" => given})
+
+        project = %Project{
+          project_id: @project_id,
+          mode: "demo",
+          adapter: DemoAdapter,
+          store: store,
+          display_states: [],
+          workspace_root: "/tmp/workspaces",
+          paused_state: "Human Review"
+        }
+
+        assert {:ok, operation} =
+                 Operations.submit(
+                   project,
+                   @actor,
+                   adopt_request("key-adopt-plan-#{expected}-#{given}"),
+                   demo_state: context.demo
+                 )
+
+        assert operation["status"] == "applied", inspect(operation)
+
+        {:ok, decision} = Store.get(@project_id, "Decision", seed["id"], server: store)
+        assert decision.payload["plan_revision"] == expected
+      end
+    end
+
+    test "reports a provider that refuses the pause", %{store: store} = context do
+      refusing = project(context, adapter: __MODULE__.RefusingTransitionAdapter)
+
+      assert {:ok, operation} = Operations.submit(refusing, @actor, pause_request("key-pause-0010"), opts(context))
+
+      assert operation["status"] == "failed"
+      assert operation["error_code"] == "provider_unavailable"
+      assert store == context.store
+    end
+
+    test "reports a resume the provider never reflected", %{store: store, demo: demo} = context do
+      seed_decision(context)
+
+      # The pause lands, the resume does not: the two stages must be reported
+      # separately rather than as one success.
+      pause_only = project(context, adapter: __MODULE__.PauseOnlyAdapter)
+
+      request =
+        adopt_request("key-adopt-0011", %{
+          "resume_after_apply" => true,
+          "resume_target_state" => "In Progress"
+        })
+
+      assert {:ok, operation} = Operations.submit(pause_only, @actor, request, opts(context))
+
+      assert operation["status"] == "outcome_unknown", inspect(operation["steps"])
+
+      # The decision was still recorded, and the issue stayed paused.
+      {:ok, decision} = Store.get(@project_id, "Decision", "decision-EMB-40", server: store)
+      assert decision.payload["status"] == "adopted"
+
+      {:ok, issue} = DemoAdapter.get_issue("demo-issue-42", demo_state: demo)
+      assert issue.state == "Human Review"
+      assert store == context.store
+    end
+
+    test "stops at the pause stage when the provider refuses it", %{store: store} = context do
+      seed_decision(context)
+      refusing = project(context, adapter: __MODULE__.RefusingTransitionAdapter)
+
+      assert {:ok, operation} = Operations.submit(refusing, @actor, adopt_request("key-adopt-0014"), opts(context))
+
+      assert operation["status"] == "failed"
+      assert operation["error_code"] == "provider_unavailable"
+
+      # The adopted decision is durable; only the workflow step failed.
+      {:ok, decision} = Store.get(@project_id, "Decision", "decision-EMB-40", server: store)
+      assert decision.payload["status"] == "adopted"
+      assert store == context.store
+    end
+
+    test "reports an unreadable decision as not found", %{store: store} = context do
+      # Nothing was ever recorded under this id, which is the same outcome as a
+      # record the store cannot read.
+      assert {:ok, operation} =
+               Operations.submit(project(context), @actor, adopt_request("key-adopt-0013", %{"decision_id" => "gone"}), opts(context))
+
+      assert operation["error_code"] == "not_found"
+      assert store == context.store
+    end
+
+    test "reports an unreadable store while loading a decision", %{store: store} = context do
+      broken = project(context, %{project_id: "../escape"})
+
+      # The intent record itself cannot be written, so there is no receipt to
+      # hand back — the caller gets the store error rather than a fake receipt.
+      assert {:error, :invalid_project_id, _} = Operations.submit(broken, @actor, adopt_request("key-adopt-0012"), opts(context))
+      assert store == context.store
+    end
+  end
+
+  defmodule PauseOnlyAdapter do
+    @moduledoc false
+    defdelegate metadata(opts), to: DemoAdapter
+    defdelegate list_issues(opts), to: DemoAdapter
+    defdelegate get_issue(id, opts), to: DemoAdapter
+    defdelegate create_issue(attrs, opts), to: DemoAdapter
+    defdelegate comment(id, body, opts), to: DemoAdapter
+    defdelegate update_workpad_plan(id, plan, opts), to: DemoAdapter
+
+    # Accepts a pause and reports it back; silently keeps the old state for any
+    # other target, which must not read as success.
+    def transition(id, state, opts) do
+      if state == "Human Review" do
+        DemoAdapter.transition(id, state, opts)
+      else
+        DemoAdapter.get_issue(id, opts)
+      end
+    end
+  end
+
+  defmodule RefusingTransitionAdapter do
+    @moduledoc false
+    defdelegate metadata(opts), to: DemoAdapter
+    defdelegate list_issues(opts), to: DemoAdapter
+    defdelegate get_issue(id, opts), to: DemoAdapter
+    defdelegate create_issue(attrs, opts), to: DemoAdapter
+    defdelegate comment(id, body, opts), to: DemoAdapter
+
+    def transition(_id, _state, _opts), do: {:error, :provider_unavailable, %{reason: "down"}}
+  end
+
+  defmodule IgnoringTransitionAdapter do
+    @moduledoc false
+    defdelegate metadata(opts), to: DemoAdapter
+    defdelegate list_issues(opts), to: DemoAdapter
+    defdelegate get_issue(id, opts), to: DemoAdapter
+    defdelegate create_issue(attrs, opts), to: DemoAdapter
+    defdelegate comment(id, body, opts), to: DemoAdapter
+
+    # Accepts the write and reports the old state, which must not read as success.
+    def transition(_id, _state, _opts), do: {:ok, %{id: "demo-issue-42", native_state: "In Progress"}}
+  end
+
+  defmodule NoWorkpadAdapter do
+    @moduledoc false
+    defdelegate metadata(opts), to: DemoAdapter
+    defdelegate list_issues(opts), to: DemoAdapter
+    defdelegate get_issue(id, opts), to: DemoAdapter
+    defdelegate create_issue(attrs, opts), to: DemoAdapter
+    defdelegate transition(id, state, opts), to: DemoAdapter
+    defdelegate comment(id, body, opts), to: DemoAdapter
   end
 
   defp opts(context), do: [demo_state: context.demo, actor: @actor]
@@ -663,7 +1140,9 @@ defmodule SymphonyElixir.Experience.OperationsTest do
   end
 
   test "the documented action set matches what this build implements" do
-    assert Operations.supported_actions() == ~w(create_issue change_issue_state comment request_evidence review)
+    assert Operations.supported_actions() ==
+             ~w(create_issue change_issue_state pause_issue resume_issue adopt_decision adjust_constraints
+                comment request_evidence review)
   end
 
   defmodule MarkedCommentAdapter do

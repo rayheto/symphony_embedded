@@ -16,7 +16,8 @@ defmodule SymphonyElixir.Experience.Operations do
 
   alias SymphonyElixir.Experience.{Canonical, Project, Store}
 
-  @supported_actions ~w(create_issue change_issue_state comment request_evidence review)
+  @supported_actions ~w(create_issue change_issue_state pause_issue resume_issue adopt_decision
+     adjust_constraints comment request_evidence review)
 
   @type request :: %{
           required(:action) => String.t(),
@@ -59,6 +60,9 @@ defmodule SymphonyElixir.Experience.Operations do
   end
 
   defp run(project, actor, request, digest, opts) do
+    # The actor always comes from the caller's trusted context; carrying it in
+    # opts keeps every write in this operation attributed to the same identity.
+    opts = Keyword.put(opts, :actor, actor)
     operation = new_operation(project, actor, request, digest)
 
     with {:ok, _record} <- append(project, 0, operation.payload, opts) do
@@ -188,8 +192,266 @@ defmodule SymphonyElixir.Experience.Operations do
     end
   end
 
+  defp do_apply(project, %{action: "pause_issue"} = request, opts) do
+    with {:ok, paused_state} <- paused_state(project),
+         {:ok, issue} <- transition_and_confirm(project, request.payload["issue_id"], paused_state, opts) do
+      {:ok, %{entity_id: issue.id, native_state: issue.state, paused_state: paused_state}}
+    end
+  end
+
+  defp do_apply(project, %{action: "resume_issue"} = request, opts) do
+    with {:ok, target} <- fetch_payload(request, "target_state"),
+         {:ok, issue} <- transition_and_confirm(project, request.payload["issue_id"], target, opts) do
+      {:ok, %{entity_id: issue.id, native_state: issue.state}}
+    end
+  end
+
+  defp do_apply(project, %{action: "adopt_decision"} = request, opts) do
+    adopt(project, request, opts)
+  end
+
+  defp do_apply(project, %{action: "adjust_constraints"} = request, opts) do
+    adjust_constraints(project, request, opts)
+  end
+
   defp do_apply(project, %{action: action} = request, opts) when action in ["review", "request_evidence"] do
     record_engineering_note(project, action, request, opts)
+  end
+
+  # ------------------------------------------------------------------
+  # Direction changes
+  # ------------------------------------------------------------------
+
+  # Pausing writes the *native* pause state and reads it back; it never claims
+  # the worker has stopped, because only the orchestrator's reconciliation can
+  # establish that.
+  defp paused_state(project) do
+    case project.paused_state do
+      state when is_binary(state) and state != "" ->
+        {:ok, state}
+
+      _unset ->
+        {:error, :unsupported_capability, %{capability: "pause", reason: "workbench.paused_state is not configured for this project"}}
+    end
+  end
+
+  defp transition_and_confirm(project, issue_id, target_state, opts) do
+    with {:ok, _updated} <- project.adapter.transition(issue_id, target_state, adapter_opts(project, opts)),
+         {:ok, issue} <- project.adapter.get_issue(issue_id, adapter_opts(project, opts)),
+         :ok <- confirm_state(issue, target_state) do
+      {:ok, issue}
+    end
+  end
+
+  # A write the provider accepted but does not reflect is not a success.
+  defp confirm_state(issue, target_state) do
+    if issue.state == target_state do
+      :ok
+    else
+      {:error, :outcome_unknown, %{expected: target_state, observed: issue.state}}
+    end
+  end
+
+  defp adopt(project, request, opts) do
+    payload = request.payload
+    actor = actor_payload(opts)
+
+    with {:ok, stored} <- load_decision(project, payload["decision_id"], opts),
+         {:ok, option} <- select_option(stored.payload, payload["option_id"]),
+         :ok <- not_already_adopted(stored.payload) do
+      adopted = adopted_payload(stored.payload, option, request, actor)
+
+      with {:ok, record} <-
+             Store.append(
+               project.project_id,
+               "Decision",
+               adopted["id"],
+               stored.entity_revision,
+               adopted,
+               actor,
+               server: project.store
+             ),
+           {:ok, pause_result} <- pause_if_running(project, request, opts),
+           {:ok, plan} <- publish_plan(project, request, adopted, record, opts),
+           {:ok, resume_result} <- resume_if_requested(project, request, opts) do
+        {:ok,
+         %{
+           entity_id: adopted["id"],
+           revision: record.entity_revision,
+           plan_revision: plan["plan_revision"],
+           paused: pause_result,
+           resumed: resume_result,
+           native_state: resume_result[:native_state] || pause_result[:native_state]
+         }}
+      end
+    end
+  end
+
+  # A decision the store cannot read is one this operation cannot act on, so an
+  # unreadable record and an absent one are reported the same way.
+  defp load_decision(project, decision_id, _opts) do
+    case Store.get(project.project_id, "Decision", decision_id, server: project.store) do
+      {:ok, record} -> {:ok, record}
+      {:error, _code, _details} -> {:error, :not_found, %{decision_id: decision_id}}
+    end
+  end
+
+  defp select_option(decision, option_id) do
+    case Enum.find(decision["options"] || [], &(&1["id"] == option_id)) do
+      nil -> {:error, :unknown_option, %{option_id: option_id, known: Enum.map(decision["options"] || [], & &1["id"])}}
+      option -> {:ok, option}
+    end
+  end
+
+  defp not_already_adopted(%{"status" => "adopted"}), do: {:error, :already_adopted, %{}}
+  defp not_already_adopted(_decision), do: :ok
+
+  defp adopted_payload(decision, option, request, actor) do
+    decision
+    |> Map.put("status", "adopted")
+    |> Map.put("selected_option_id", option["id"])
+    |> Map.put("constraints", List.wrap(request.payload["constraints"]) |> Enum.uniq() |> keep_existing(decision))
+    |> Map.put("limitations", List.wrap(request.payload["limitations"]) |> keep_existing(decision))
+    |> Map.put("plan_revision", next_plan_revision(decision))
+    |> Map.put("actor", actor)
+    |> Map.put("adopted_at", now())
+    |> Map.put("supersedes", nil)
+  end
+
+  defp keep_existing([], current), do: current
+  defp keep_existing(given, _current), do: given
+
+  defp next_plan_revision(decision) do
+    case decision["plan_revision"] do
+      "r" <> number ->
+        case Integer.parse(number) do
+          {value, ""} -> "r#{value + 1}"
+          _other -> "r1"
+        end
+
+      _other ->
+        "r1"
+    end
+  end
+
+  # A direction change only takes effect once the executor has stopped, so an
+  # active issue is paused first and the result says which of the two happened.
+  defp pause_if_running(project, request, opts) do
+    with {:ok, paused_state} <- paused_state(project),
+         {:ok, issue} <- project.adapter.get_issue(request.payload["issue_id"], adapter_opts(project, opts)) do
+      confirm_pause(project, request, issue, paused_state, opts)
+    end
+  end
+
+  defp confirm_pause(_project, _request, issue, paused_state, _opts) when issue.state == paused_state do
+    {:ok, %{status: "already_paused", native_state: issue.state}}
+  end
+
+  defp confirm_pause(project, request, _issue, paused_state, opts) do
+    case transition_and_confirm(project, request.payload["issue_id"], paused_state, opts) do
+      {:ok, paused} -> {:ok, %{status: "paused", native_state: paused.state}}
+      {:error, code, details} -> {:error, code, details}
+    end
+  end
+
+  # The plan reference is what the next executor reads; it carries the decision
+  # identity and hash so "which plan ran" is answerable later.
+  defp publish_plan(project, request, adopted, record, opts) do
+    plan = %{
+      decision_id: adopted["id"],
+      decision_revision: record.entity_revision,
+      decision_sha256: Canonical.sha256(adopted),
+      plan_revision: adopted["plan_revision"],
+      constraints: adopted["constraints"] || [],
+      remaining_validation: adopted["limitations"] || []
+    }
+
+    case update_workpad(project, request.payload["issue_id"], plan, opts) do
+      {:ok, _result} -> {:ok, %{"plan_revision" => plan.plan_revision, "plan_sha256" => Canonical.sha256(plan)}}
+      {:error, code, details} -> {:error, code, details}
+    end
+  end
+
+  defp update_workpad(project, issue_id, plan, opts) do
+    adapter = project.adapter
+
+    if function_exported?(adapter, :update_workpad_plan, 3) do
+      adapter.update_workpad_plan(issue_id, plan, adapter_opts(project, opts))
+    else
+      {:error, :unsupported_capability, %{capability: "workpad", reason: "provider has no writable workpad"}}
+    end
+  end
+
+  # Resuming is a separate, explicit stage of the same operation, and it is off
+  # unless the caller asked for it.
+  defp resume_if_requested(project, request, opts) do
+    case {request.payload["resume_after_apply"], request.payload["resume_target_state"]} do
+      {true, target} when is_binary(target) and target != "" ->
+        case transition_and_confirm(project, request.payload["issue_id"], target, opts) do
+          {:ok, issue} -> {:ok, %{status: "resumed", native_state: issue.state}}
+          {:error, code, details} -> {:error, code, details}
+        end
+
+      _not_requested ->
+        {:ok, %{status: "not_requested"}}
+    end
+  end
+
+  defp adjust_constraints(project, request, opts) do
+    with {:ok, stored} <- load_decision(project, request.payload["decision_id"], opts),
+         :ok <- constraints_target(stored.payload) do
+      revision = revised_constraints(stored.payload, List.wrap(request.payload["constraints"]))
+
+      with {:ok, record} <-
+             Store.append(
+               project.project_id,
+               "Decision",
+               revision["id"],
+               stored.entity_revision,
+               revision,
+               actor_payload(opts),
+               server: project.store
+             ),
+           {:ok, _pause} <- pause_if_constraints_applied(project, request, revision, opts) do
+        {:ok, %{entity_id: revision["id"], revision: record.entity_revision, native_state: revision["status"]}}
+      end
+    end
+  end
+
+  # A draft edit changes a candidate only. Editing an adopted decision creates a
+  # new adopted revision that keeps the selected option and inherits the rest.
+  defp revised_constraints(%{"status" => "draft"} = decision, constraints) do
+    decision |> Map.put("constraints", constraints) |> Map.put("updated_at", now())
+  end
+
+  defp revised_constraints(%{"status" => "adopted"} = decision, constraints) do
+    decision
+    |> Map.put("constraints", constraints)
+    |> Map.put("plan_revision", next_plan_revision(decision))
+    |> Map.put("supersedes", decision["id"])
+    |> Map.put("adopted_at", now())
+    |> Map.put("updated_at", now())
+  end
+
+  defp constraints_target(%{"status" => status}) when status in ["draft", "adopted"], do: :ok
+
+  defp constraints_target(%{"status" => status}) do
+    {:error, :not_editable, %{status: status, reason: "只有草稿与已采用的方案可以调整约束"}}
+  end
+
+  # Editing a draft changes a candidate only. Editing an adopted decision keeps
+  # the chosen option and goes through the same pause/publish path as adoption.
+  defp pause_if_constraints_applied(_project, _request, %{"status" => "draft"}, _opts), do: {:ok, %{status: "draft_only"}}
+
+  defp pause_if_constraints_applied(project, request, _adopted, opts) do
+    pause_if_running(project, request, opts)
+  end
+
+  defp fetch_payload(request, key) do
+    case request.payload[key] do
+      value when is_binary(value) and value != "" -> {:ok, value}
+      _missing -> {:error, :invalid_payload, %{missing: key}}
+    end
   end
 
   # A note that only the workbench itself consumes (a review verdict or an

@@ -23,6 +23,7 @@ defmodule SymphonyElixir.Experience.Project do
     :domain_profile,
     :device_config,
     :archify_root,
+    :paused_state,
     :tracker_settings
   ]
 
@@ -37,6 +38,7 @@ defmodule SymphonyElixir.Experience.Project do
           domain_profile: String.t() | nil,
           device_config: String.t() | nil,
           archify_root: String.t() | nil,
+          paused_state: String.t() | nil,
           tracker_settings: map() | nil
         }
 
@@ -91,6 +93,7 @@ defmodule SymphonyElixir.Experience.Project do
       domain_profile: workbench.domain_profile,
       device_config: workbench.device_config,
       archify_root: workbench.archify_root,
+      paused_state: workbench.paused_state,
       tracker_settings: settings.tracker
     }
   end

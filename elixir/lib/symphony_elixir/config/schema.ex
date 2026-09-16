@@ -310,6 +310,7 @@ defmodule SymphonyElixir.Config.Schema do
       field(:device_config, :string)
       field(:archify_root, :string)
       field(:display_states, {:array, :string}, default: [])
+      field(:paused_state, :string)
     end
 
     @spec changeset(%__MODULE__{}, map()) :: Ecto.Changeset.t()
@@ -318,7 +319,17 @@ defmodule SymphonyElixir.Config.Schema do
         schema
         |> cast(
           attrs,
-          [:enabled, :mode, :project_id, :data_root, :domain_profile, :device_config, :archify_root, :display_states],
+          [
+            :enabled,
+            :mode,
+            :project_id,
+            :data_root,
+            :domain_profile,
+            :device_config,
+            :archify_root,
+            :display_states,
+            :paused_state
+          ],
           empty_values: []
         )
         |> validate_inclusion(:mode, @modes)
