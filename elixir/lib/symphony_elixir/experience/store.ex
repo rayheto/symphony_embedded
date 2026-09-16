@@ -248,6 +248,32 @@ defmodule SymphonyElixir.Experience.Store do
     GenServer.call(server(opts), {:reclaim_blobs, digests}, @default_timeout)
   end
 
+  @doc """
+  Check a data root without changing it: every journal is replayed and every blob
+  is re-hashed from its bytes.
+
+  This is what a restore drill asks before trusting a copy, and what an operator
+  runs when a host has been powered off uncleanly. It reports what it found; it
+  never repairs, because repairing is a decision, not a check.
+  """
+  @spec verify(keyword()) :: {:ok, map()} | {:error, atom(), map()}
+  def verify(opts \\ []) do
+    GenServer.call(server(opts), :verify, @default_timeout)
+  end
+
+  @doc """
+  Copy the data root to another location and report what was copied.
+
+  The lock file names a live holder and `blobs/tmp` holds half-written uploads;
+  neither is data, and carrying the lock into a copy would make the restored copy
+  refuse to start on the very host it was restored to. The copy is not verified
+  here — `verify/1` answers that question about the copy itself.
+  """
+  @spec backup(String.t(), keyword()) :: {:ok, map()} | {:error, atom(), map()}
+  def backup(target, opts \\ []) do
+    GenServer.call(server(opts), {:backup, target}, @default_timeout)
+  end
+
   @spec recovery_reports(keyword()) :: [map()]
   def recovery_reports(opts \\ []) do
     GenServer.call(server(opts), :recovery_reports, @default_timeout)
@@ -413,6 +439,14 @@ defmodule SymphonyElixir.Experience.Store do
     end
   end
 
+  def handle_call({:backup, target}, _from, state) do
+    {:reply, copy_root(state.root, target), state}
+  end
+
+  def handle_call(:verify, _from, state) do
+    {:reply, {:ok, verification(state.root, state.faults)}, state}
+  end
+
   def handle_call(:orphan_blobs, _from, state) do
     {:reply, orphan_receipts(state.root), state}
   end
@@ -461,6 +495,113 @@ defmodule SymphonyElixir.Experience.Store do
 
         reclaimed(Enum.map(deleted, &remove_blob(root, &1)), kept, referenced)
     end
+  end
+
+  # ------------------------------------------------------------------
+  # Verification
+  # ------------------------------------------------------------------
+
+  defp copy_root(root, target) do
+    with {:ok, expanded} <- expand_root(target),
+         :ok <- outside_source(expanded, root),
+         :ok <- copy_tree(root, expanded) do
+      removed = remove_excluded(expanded)
+
+      {:ok,
+       %{
+         "target" => expanded,
+         "files" => count_files(expanded),
+         "bytes" => total_bytes(expanded),
+         "excluded" => removed
+       }}
+    end
+  end
+
+  defp outside_source(target, root) do
+    if String.starts_with?(target <> "/", root <> "/") do
+      {:error, :backup_inside_data_root, %{target: target, root: root}}
+    else
+      :ok
+    end
+  end
+
+  defp copy_tree(root, target) do
+    case File.cp_r(root, target) do
+      {:ok, _copied} -> :ok
+      {:error, reason, path} -> {:error, :backup_failed, %{reason: to_string(reason), path: path}}
+    end
+  end
+
+  defp remove_excluded(target) do
+    lock = Path.join(target, "store.lock")
+    tmp = Path.join([target, "blobs", "tmp"])
+
+    Enum.filter([lock, tmp], fn path ->
+      File.exists?(path) and File.rm_rf!(path) != []
+    end)
+    |> Enum.map(&Path.relative_to(&1, target))
+  end
+
+  defp count_files(root) do
+    root |> Path.join("**") |> Path.wildcard(match_dot: true) |> Enum.count(&File.regular?/1)
+  end
+
+  defp total_bytes(root) do
+    root
+    |> Path.join("**")
+    |> Path.wildcard(match_dot: true)
+    |> Enum.filter(&File.regular?/1)
+    |> Enum.map(&File.stat!(&1).size)
+    |> Enum.sum()
+  end
+
+  defp verification(root, faults) do
+    projects = verify_projects(root, faults)
+    blobs = verify_blobs(root)
+
+    %{
+      "ok" => Enum.all?(projects, & &1["ok"]) and blobs["corrupt"] == [] and blobs["unreadable"] == [],
+      "projects" => projects,
+      "blobs" => blobs
+    }
+  end
+
+  defp verify_projects(root, faults) do
+    root
+    |> Path.join("projects/*")
+    |> Path.wildcard()
+    |> Enum.filter(&File.dir?/1)
+    |> Enum.sort()
+    |> Enum.map(fn dir ->
+      case load_project(dir, faults) do
+        {:ok, project, reports} ->
+          %{"project" => Path.basename(dir), "seq" => project.seq, "reports" => reports, "ok" => true}
+
+        {:error, code, details} ->
+          %{"project" => Path.basename(dir), "ok" => false, "error" => to_string(code), "details" => inspect(details)}
+      end
+    end)
+  end
+
+  defp verify_blobs(root) do
+    paths = Path.join([root, "blobs", "sha256", "*", "*"]) |> Path.wildcard() |> Enum.filter(&File.regular?/1)
+
+    Enum.reduce(paths, %{"checked" => 0, "corrupt" => [], "unreadable" => []}, fn path, acc ->
+      digest = Path.basename(path)
+
+      case File.read(path) do
+        {:ok, bytes} ->
+          %{acc | "checked" => acc["checked"] + 1}
+          |> maybe_corrupt(digest, digest(bytes))
+
+        {:error, reason} ->
+          %{acc | "unreadable" => acc["unreadable"] ++ [%{"sha256" => digest, "reason" => to_string(reason)}]}
+      end
+    end)
+  end
+
+  defp maybe_corrupt(acc, digest, actual) do
+    if digest == actual, do: acc, else: %{acc | "corrupt" => acc["corrupt"] ++ [%{"sha256" => digest, "actual" => actual}]}
   end
 
   defp reclaimed(removed, kept, referenced) do

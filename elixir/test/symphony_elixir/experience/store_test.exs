@@ -475,6 +475,114 @@ defmodule SymphonyElixir.Experience.StoreTest do
     end
   end
 
+  describe "verification and restore" do
+    test "refuses to write a backup inside the root it is copying", %{store: store, root: root} do
+      assert {:error, :backup_inside_data_root, %{}} = Store.backup(Path.join(root, "copy"), server: store)
+    end
+
+    test "verifies a clean data root and reports what it checked", %{store: store} do
+      {:ok, receipt} = Store.put_blob(@project, "evidence bytes", "text/plain", server: store)
+
+      {:ok, _record} =
+        Store.append(@project, "Evidence", "ev-1", 0, payload(%{"blob_sha256" => receipt["sha256"]}), @agent, server: store)
+
+      assert {:ok, report} = Store.verify(server: store)
+      assert report["ok"]
+      assert [%{"project" => @project, "seq" => 1, "ok" => true, "reports" => []}] = report["projects"]
+      assert %{"checked" => 1, "corrupt" => [], "unreadable" => []} = report["blobs"]
+    end
+
+    test "reports a blob whose bytes no longer match its name", %{store: store, root: root} do
+      {:ok, receipt} = Store.put_blob(@project, "evidence bytes", "text/plain", server: store)
+      digest = receipt["sha256"]
+
+      File.write!(Path.join([root, "blobs", "sha256", String.slice(digest, 0, 2), digest]), "tampered")
+
+      assert {:ok, report} = Store.verify(server: store)
+      refute report["ok"]
+      assert [%{"sha256" => ^digest, "actual" => actual}] = report["blobs"]["corrupt"]
+      assert actual != digest
+    end
+
+    test "reports a blob it cannot read at all", %{store: store, root: root} do
+      {:ok, receipt} = Store.put_blob(@project, "unreadable bytes", "text/plain", server: store)
+      digest = receipt["sha256"]
+      path = Path.join([root, "blobs", "sha256", String.slice(digest, 0, 2), digest])
+
+      File.chmod!(path, 0o000)
+      on_exit(fn -> File.chmod(path, 0o600) end)
+
+      assert {:ok, report} = Store.verify(server: store)
+      refute report["ok"]
+      assert [%{"sha256" => ^digest, "reason" => "eacces"}] = report["blobs"]["unreadable"]
+    end
+
+    test "reports a backup that could not be written", %{store: store} do
+      outside = Path.join(System.tmp_dir!(), "symphony-backup-block-#{System.unique_integer([:positive])}")
+      File.write!(outside, "not a directory")
+      on_exit(fn -> File.rm_rf(outside) end)
+
+      assert {:error, :backup_failed, %{reason: "enotdir", path: _}} =
+               Store.backup(Path.join(outside, "copy"), server: store)
+    end
+
+    test "reports a project whose journal cannot be opened instead of calling it empty", %{store: store, root: root} do
+      File.mkdir_p!(Path.join([root, "projects", @project, "records.jsonl"]))
+
+      assert {:ok, report} = Store.verify(server: store)
+      refute report["ok"]
+      assert [%{"project" => @project, "ok" => false, "error" => "journal_unreadable"}] = report["projects"]
+    end
+
+    test "a restored copy of the data root reads back the same records and bytes", %{store: store, root: root} do
+      {:ok, receipt} = Store.put_blob(@project, "original bytes", "application/octet-stream", server: store)
+
+      {:ok, first} =
+        Store.append(@project, "Evidence", "ev-1", 0, payload(%{"blob_sha256" => receipt["sha256"]}), @agent, server: store)
+
+      {:ok, second} = Store.append(@project, "Evidence", "ev-1", 1, payload(%{"note" => "second"}), @agent, server: store)
+
+      # A backup is the data root, copied while nothing is writing to it; a
+      # restore is a store pointed at the copy.
+      restored_root = Path.join(System.tmp_dir!(), "symphony-restore-#{System.unique_integer([:positive])}")
+      File.mkdir_p!(restored_root)
+      on_exit(fn -> File.rm_rf(restored_root) end)
+
+      # The running store holds a lock; a copy that carried it would refuse to
+      # start on the host it was restored to.
+      assert File.exists?(Path.join(root, "store.lock"))
+
+      assert {:ok, backup} = Store.backup(restored_root, server: store)
+      assert backup["target"] == restored_root
+      assert backup["files"] > 0
+      assert backup["bytes"] > 0
+      assert "store.lock" in backup["excluded"]
+      refute File.exists?(Path.join(restored_root, "store.lock"))
+
+      restored = Module.concat(__MODULE__, :"Restored#{System.unique_integer([:positive])}")
+      start_supervised!({Store, name: restored, data_root: restored_root})
+
+      assert {:ok, report} = Store.verify(server: restored)
+      assert report["ok"]
+
+      assert {:ok, reloaded} = Store.get(@project, "Evidence", "ev-1", server: restored)
+      assert reloaded.entity_revision == 2
+      assert reloaded.payload["note"] == "second"
+      assert reloaded.project_seq == second.project_seq
+
+      assert {:ok, archived} = Store.get_revision(@project, "Evidence", "ev-1", 1, server: restored)
+      assert archived.payload["blob_sha256"] == receipt["sha256"]
+      assert archived.payload_sha256 == first.payload_sha256
+
+      # The bytes the restored record names are still the bytes it named.
+      assert {:ok, "original bytes"} = Store.get_blob(@project, receipt["sha256"], server: restored)
+
+      # And the restored copy can rebuild its own index without renumbering.
+      assert {:ok, 2} = Store.rebuild_index(@project, server: restored)
+      assert Store.project_seq(@project, server: restored) == 2
+    end
+  end
+
   describe "journal integrity" do
     test "reports an unreadable journal path", %{root: parent} do
       root = Path.join(parent, "dirjournal")

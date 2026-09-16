@@ -429,6 +429,16 @@ defmodule SymphonyElixirWeb.WorkbenchLiveTest do
 
     assert {:ok, %{"deleted" => [%{"sha256" => ^digest, "size_bytes" => 17}], "freed_bytes" => 17}} =
              Store.reclaim_blobs([digest])
+
+    # The same default applies to the two operations an operator runs around a
+    # restore: check the root, then copy it somewhere else.
+    assert {:ok, %{"ok" => true, "blobs" => %{"checked" => 0}}} = Store.verify()
+
+    backup = Path.join(System.tmp_dir!(), "symphony-workbench-backup-#{System.unique_integer([:positive])}")
+    on_exit(fn -> File.rm_rf(backup) end)
+
+    assert {:ok, %{"target" => ^backup, "excluded" => excluded}} = Store.backup(backup)
+    assert "store.lock" in excluded
   end
 
   test "a store outage degrades the detail page instead of crashing it" do

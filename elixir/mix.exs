@@ -103,10 +103,16 @@ defmodule SymphonyElixir.MixProject do
     ]
   end
 
+  # Burrito's wrap step builds self-contained bundles with `zig` and `xz`; a
+  # host that has neither can still assemble the release itself and run it, so
+  # the step is skipped when BURRITO_SKIP_WRAP=1 rather than removing the
+  # packaging path this project already had.
   defp releases do
+    steps = if System.get_env("BURRITO_SKIP_WRAP") == "1", do: [:assemble], else: [:assemble, &Burrito.wrap/1]
+
     [
       symphony: [
-        steps: [:assemble, &Burrito.wrap/1],
+        steps: steps,
         burrito: [
           targets: [
             macos_arm64: [os: :darwin, cpu: :aarch64],
