@@ -92,6 +92,28 @@ defmodule SymphonyElixir.Config do
     Path.expand(settings!().workspace.root, workflow_dir)
   end
 
+  @doc """
+  Workbench extension settings, or `nil` when the running workflow has none.
+
+  The original runtime works with or without these fields, so callers must treat
+  a disabled workbench as "no workbench", not as a misconfiguration.
+  """
+  @spec workbench() :: Schema.Workbench.t() | nil
+  def workbench do
+    case settings() do
+      {:ok, %Schema{workbench: workbench}} -> workbench
+      _error -> nil
+    end
+  end
+
+  @spec workbench_enabled?() :: boolean()
+  def workbench_enabled? do
+    case workbench() do
+      %Schema.Workbench{enabled: true} -> true
+      _other -> false
+    end
+  end
+
   @spec validate!() :: :ok | {:error, term()}
   def validate! do
     WorkflowStore.force_reload()

@@ -289,6 +289,80 @@ defmodule SymphonyElixir.Config.Schema do
     end
   end
 
+  defmodule Workbench do
+    @moduledoc false
+    use Ecto.Schema
+    import Ecto.Changeset
+
+    alias SymphonyElixir.Config.Schema
+
+    @modes ["live", "demo"]
+
+    @primary_key false
+    embedded_schema do
+      field(:enabled, :boolean, default: false)
+      field(:mode, :string, default: "live")
+      field(:project_id, :string)
+      field(:data_root, :string)
+      field(:domain_profile, :string)
+      field(:device_config, :string)
+      field(:archify_root, :string)
+      field(:display_states, {:array, :string}, default: [])
+    end
+
+    @spec changeset(%__MODULE__{}, map()) :: Ecto.Changeset.t()
+    def changeset(schema, attrs) do
+      changeset =
+        schema
+        |> cast(
+          attrs,
+          [:enabled, :mode, :project_id, :data_root, :domain_profile, :device_config, :archify_root, :display_states],
+          empty_values: []
+        )
+        |> validate_inclusion(:mode, @modes)
+        |> validate_unique_display_states()
+
+      # The workbench contract only requires project_id when the workbench is
+      # actually enabled, so a workflow that never mentions workbench.{...} stays
+      # valid for the original runtime.
+      if get_field(changeset, :enabled) do
+        changeset
+        |> validate_required([:project_id, :data_root])
+        |> validate_absolute_data_root()
+      else
+        changeset
+      end
+    end
+
+    defp validate_unique_display_states(changeset) do
+      validate_change(changeset, :display_states, fn :display_states, states ->
+        if length(Enum.uniq(states)) == length(states) do
+          []
+        else
+          [display_states: "must not repeat an entry"]
+        end
+      end)
+    end
+
+    defp validate_absolute_data_root(changeset) do
+      validate_change(changeset, :data_root, fn :data_root, raw ->
+        case Schema.resolve_path_token(raw) do
+          # An unset environment reference resolves to nothing, so the workbench
+          # would start without a data root. Fail the config instead of guessing.
+          nil ->
+            [data_root: "must resolve to an absolute path; the referenced environment variable is not set"]
+
+          resolved ->
+            if Path.type(resolved) == :absolute do
+              []
+            else
+              [data_root: "must be an absolute path so it cannot resolve into the workspace root"]
+            end
+        end
+      end)
+    end
+  end
+
   embedded_schema do
     embeds_one(:tracker, Tracker, on_replace: :update, defaults_to_struct: true)
     embeds_one(:polling, Polling, on_replace: :update, defaults_to_struct: true)
@@ -299,6 +373,7 @@ defmodule SymphonyElixir.Config.Schema do
     embeds_one(:hooks, Hooks, on_replace: :update, defaults_to_struct: true)
     embeds_one(:observability, Observability, on_replace: :update, defaults_to_struct: true)
     embeds_one(:server, Server, on_replace: :update, defaults_to_struct: true)
+    embeds_one(:workbench, Workbench, on_replace: :update, defaults_to_struct: true)
   end
 
   @spec parse(map()) :: {:ok, %__MODULE__{}} | {:error, {:invalid_workflow_config, String.t()}}
@@ -393,6 +468,32 @@ defmodule SymphonyElixir.Config.Schema do
     |> cast_embed(:hooks, with: &Hooks.changeset/2)
     |> cast_embed(:observability, with: &Observability.changeset/2)
     |> cast_embed(:server, with: &Server.changeset/2)
+    |> cast_embed(:workbench, with: &Workbench.changeset/2)
+    |> validate_workbench_data_root()
+  end
+
+  defp validate_workbench_data_root(changeset) do
+    with %Workbench{enabled: true, data_root: data_root} when is_binary(data_root) <-
+           get_field(changeset, :workbench),
+         %Workspace{root: workspace_root} when is_binary(workspace_root) <-
+           get_field(changeset, :workspace),
+         true <- Path.type(data_root) == :absolute and Path.type(workspace_root) == :absolute do
+      expanded_data_root = Path.expand(data_root)
+      expanded_workspace = Path.expand(workspace_root)
+
+      if expanded_data_root == expanded_workspace or
+           String.starts_with?(expanded_data_root, expanded_workspace <> "/") do
+        add_error(
+          changeset,
+          :workbench,
+          "data_root must live outside workspace.root so cleaning a workspace cannot delete evidence"
+        )
+      else
+        changeset
+      end
+    else
+      _other -> changeset
+    end
   end
 
   defp finalize_settings(settings) do
@@ -460,8 +561,23 @@ defmodule SymphonyElixir.Config.Schema do
         turn_sandbox_policy: normalize_optional_map(settings.codex.turn_sandbox_policy)
     }
 
-    %{settings | tracker: tracker, workspace: workspace, codex: codex}
+    workbench = finalize_workbench(settings.workbench)
+
+    %{settings | tracker: tracker, workspace: workspace, codex: codex, workbench: workbench}
   end
+
+  defp finalize_workbench(workbench) do
+    %{
+      workbench
+      | data_root: resolve_optional_path(workbench.data_root),
+        domain_profile: resolve_optional_path(workbench.domain_profile),
+        device_config: resolve_optional_path(workbench.device_config),
+        archify_root: resolve_optional_path(workbench.archify_root)
+    }
+  end
+
+  defp resolve_optional_path(nil), do: nil
+  defp resolve_optional_path(value) when is_binary(value), do: resolve_path_value(value, nil)
 
   defp normalize_keys(value) when is_map(value) do
     Enum.reduce(value, %{}, fn {key, raw_value}, normalized ->
@@ -500,6 +616,14 @@ defmodule SymphonyElixir.Config.Schema do
   end
 
   defp resolve_secret_setting(value, _fallback), do: value
+
+  @doc false
+  @spec resolve_path_token(String.t() | nil) :: String.t() | nil
+  def resolve_path_token(nil), do: nil
+
+  def resolve_path_token(value) when is_binary(value) do
+    resolve_path_value(value, nil)
+  end
 
   defp resolve_path_value(value, default) when is_binary(value) do
     case normalize_path_token(value) do
