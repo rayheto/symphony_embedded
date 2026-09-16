@@ -1,0 +1,13 @@
+#!/bin/sh
+# Symphony commit message policy (Conventional Commits with scope).
+# Merge this invocation into an existing hook chain; never replace another hook.
+set -eu
+if git rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1; then
+  # Real merge commits created by the pull/land flow keep their Git title.
+  exit 0
+fi
+symphony_repo_root=$(git rev-parse --show-toplevel)
+symphony_python=${SYMPHONY_PYTHON:-python3}
+exec "$symphony_python" \
+  "$symphony_repo_root/docs/implementation/scripts/check_commit_message.py" \
+  --file "$1"
