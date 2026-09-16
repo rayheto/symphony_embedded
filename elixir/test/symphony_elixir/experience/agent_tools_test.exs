@@ -1,6 +1,7 @@
 defmodule SymphonyElixir.Experience.AgentToolsTest do
   use SymphonyElixir.TestSupport
 
+  alias SymphonyElixir.Devices.Manager
   alias SymphonyElixir.Experience.{AgentTools, Architecture, Canonical, DemoAdapter, Project, Store}
   alias SymphonyElixir.Tracker.Issue
 
@@ -128,7 +129,8 @@ defmodule SymphonyElixir.Experience.AgentToolsTest do
 
     test "declares which advertised tools this build actually implements" do
       assert AgentTools.supported_tools() ==
-               ~w(engineering_report engineering_read engineering_plan_loaded engineering_blob_import engineering_architecture_publish)
+               ~w(engineering_report engineering_read engineering_plan_loaded engineering_blob_import
+                  engineering_architecture_publish engineering_device_lease engineering_device_action)
     end
 
     test "binds no tools at all when the workbench is off" do
@@ -512,6 +514,146 @@ defmodule SymphonyElixir.Experience.AgentToolsTest do
     end
   end
 
+  describe "device tools" do
+    defp start_device_manager(context) do
+      if pid = Process.whereis(Manager), do: GenServer.stop(pid)
+
+      path = Path.join(context.root, "devices.yaml")
+
+      File.write!(path, """
+      schema_version: "1.0"
+      host_id: "test-host"
+      devices:
+        - key: "board-a"
+          display_name: "开发板 A"
+          action_ids: ["reboot"]
+      actions:
+        - tool_id: "reboot"
+          absolute_executable: "/bin/echo"
+          fixed_argv_template: ["rebooting"]
+          timeout_ms: 5000
+          required_capability: "control"
+          idempotent: true
+      """)
+
+      # `restart: :transient` lets one test take the manager down deliberately.
+      start_supervised!(%{id: Manager, start: {Manager, :start_link, [[config_path: path]]}, restart: :transient})
+      on_exit(fn -> if pid = Process.whereis(Manager), do: GenServer.stop(pid) end)
+      :ok
+    end
+
+    test "a host with no device manager reports the capability as unavailable" do
+      if pid = Process.whereis(Manager), do: GenServer.stop(pid)
+
+      result = run("engineering_device_lease", %{"device_id" => "board-a", "action" => "acquire", "idempotency_key" => "key-lease-0001"})
+
+      assert result["error"]["code"] == "unsupported_capability"
+      assert result["error"]["details"] =~ "设备管理"
+    end
+
+    test "acquiring a lease binds it to the run, not to a caller-supplied owner", context do
+      :ok = start_device_manager(context)
+
+      result =
+        run("engineering_device_lease", %{
+          "device_id" => "board-a",
+          "action" => "acquire",
+          "ttl_seconds" => 60,
+          "idempotency_key" => "key-lease-0002"
+        })
+
+      assert result["ok"]
+      assert result["lease"]["owner_run_id"] == "thread-7"
+      assert result["lease"]["generation"] == 1
+
+      # Without a requested ttl the manager's own default applies, and a ttl
+      # outside its bounds is refused by the manager rather than clamped here.
+      assert run("engineering_device_lease", %{
+               "device_id" => "board-a",
+               "action" => "acquire",
+               "idempotency_key" => "key-lease-0006"
+             })["ok"]
+
+      below =
+        run("engineering_device_lease", %{
+          "device_id" => "board-a",
+          "action" => "acquire",
+          "ttl_seconds" => "not a number",
+          "idempotency_key" => "key-lease-0007"
+        })
+
+      assert below["error"]["code"] == "invalid_lease_ttl"
+    end
+
+    test "renewing without a generation is refused instead of guessed", context do
+      :ok = start_device_manager(context)
+
+      result =
+        run("engineering_device_lease", %{
+          "device_id" => "board-a",
+          "action" => "renew",
+          "idempotency_key" => "key-lease-0003"
+        })
+
+      assert result["error"]["code"] == "invalid_arguments"
+      assert result["error"]["details"] =~ "generation"
+    end
+
+    test "a lease can be renewed and released under its own generation", context do
+      :ok = start_device_manager(context)
+
+      {:ok, lease} =
+        Manager.acquire_lease(Manager, "board-a", "thread-7")
+
+      assert run("engineering_device_lease", %{
+               "device_id" => "board-a",
+               "action" => "renew",
+               "generation" => lease["generation"],
+               "ttl_seconds" => 90,
+               "idempotency_key" => "key-lease-0004"
+             })["ok"]
+
+      assert run("engineering_device_lease", %{
+               "device_id" => "board-a",
+               "action" => "release",
+               "generation" => lease["generation"],
+               "idempotency_key" => "key-lease-0005"
+             })["ok"]
+    end
+
+    test "an action runs only under the current lease and returns the host's receipt", context do
+      :ok = start_device_manager(context)
+      {:ok, lease} = Manager.acquire_lease(Manager, "board-a", "thread-7")
+
+      result =
+        run("engineering_device_action", %{
+          "device_id" => "board-a",
+          "tool_id" => "reboot",
+          "lease_generation" => lease["generation"],
+          "idempotency_key" => "key-action-0001"
+        })
+
+      assert result["ok"]
+      assert result["receipt"]["exit_code"] == 0
+      assert result["receipt"]["outcome"] == "confirmed"
+      assert result["receipt"]["executable"] == "/bin/echo"
+    end
+
+    test "an action without a lease is refused with the manager's reason", context do
+      :ok = start_device_manager(context)
+
+      result =
+        run("engineering_device_action", %{
+          "device_id" => "board-a",
+          "tool_id" => "reboot",
+          "lease_generation" => 1,
+          "idempotency_key" => "key-action-0002"
+        })
+
+      assert result["error"]["code"] == "no_lease"
+    end
+  end
+
   describe "engineering_blob_import" do
     setup %{workspace: workspace} do
       bytes = "10:36:01.460  buffer_reuse buf=01\n"
@@ -714,14 +856,20 @@ defmodule SymphonyElixir.Experience.AgentToolsTest do
   end
 
   describe "unimplemented tools" do
-    test "says so instead of pretending to succeed" do
-      for tool <- ["engineering_device_action", "engineering_device_lease"] do
-        result = run(tool, %{})
+    test "every advertised tool is one this build implements" do
+      advertised = Enum.map(AgentTools.tool_specs(), & &1["name"])
 
-        assert result["error"]["code"] == "unsupported_capability"
-        assert result["error"]["details"] =~ tool
-        refute result["envelope_success"]
-      end
+      assert advertised -- AgentTools.supported_tools() == []
+    end
+
+    test "a tool that is advertised but not built says so instead of pretending to succeed" do
+      # The fallback is what a future contract entry would land in, so it is
+      # checked directly rather than by leaving one tool unimplemented.
+      result = run("engineering_not_built_yet", %{})
+
+      assert result["error"]["code"] == "unsupported_capability"
+      assert result["error"]["details"] =~ "engineering_not_built_yet"
+      refute result["envelope_success"]
     end
 
     test "an unknown tool name is reported, not ignored" do

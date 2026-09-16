@@ -11,6 +11,7 @@ defmodule SymphonyElixir.Experience.AgentTools do
 
   require Logger
 
+  alias SymphonyElixir.Devices.Manager
   alias SymphonyElixir.Experience.{Architecture, Canonical, Project, Store}
   alias SymphonyElixir.PathSafety
 
@@ -49,7 +50,8 @@ defmodule SymphonyElixir.Experience.AgentTools do
   @doc "The tool names this build actually implements."
   @spec supported_tools() :: [String.t()]
   def supported_tools do
-    ~w(engineering_report engineering_read engineering_plan_loaded engineering_blob_import engineering_architecture_publish)
+    ~w(engineering_report engineering_read engineering_plan_loaded engineering_blob_import
+       engineering_architecture_publish engineering_device_lease engineering_device_action)
   end
 
   @doc """
@@ -198,6 +200,42 @@ defmodule SymphonyElixir.Experience.AgentTools do
     end
   end
 
+  # The lease owner is the run the tool is bound to, never an argument: a caller
+  # cannot name itself someone else's run, and an expired token is refused by the
+  # manager rather than renewed into existence here.
+  defp dispatch("engineering_device_lease", arguments, context) do
+    with {:ok, device_id} <- fetch(arguments, "device_id"),
+         {:ok, action} <- fetch(arguments, "action"),
+         {:ok, manager} <- device_manager(),
+         {:ok, result} <-
+           lease(
+             action,
+             manager,
+             device_id,
+             Map.get(context, :run_id),
+             Map.get(arguments, "generation"),
+             Map.get(arguments, "ttl_seconds")
+           ) do
+      success(%{"ok" => true, "lease" => result})
+    else
+      {:error, code, details} -> failure(code, details)
+    end
+  end
+
+  defp dispatch("engineering_device_action", arguments, context) do
+    with {:ok, device_id} <- fetch(arguments, "device_id"),
+         {:ok, tool_id} <- fetch(arguments, "tool_id"),
+         {:ok, generation} <- fetch(arguments, "lease_generation"),
+         {:ok, manager} <- device_manager(),
+         {:ok, receipt} <- Manager.run_action(manager, device_id, tool_id, Map.get(context, :run_id), generation) do
+      # The receipt is the host's, including its outcome: the agent records what
+      # happened, it does not decide whether the hardware worked.
+      success(%{"ok" => true, "receipt" => receipt})
+    else
+      {:error, code, details} -> failure(code, details)
+    end
+  end
+
   defp dispatch(tool, _arguments, _context) do
     failure(:unsupported_capability, %{
       tool: tool,
@@ -205,6 +243,39 @@ defmodule SymphonyElixir.Experience.AgentTools do
       reason: "this build advertises the tool but does not implement it yet"
     })
   end
+
+  # ------------------------------------------------------------------
+  # Device tools
+  # ------------------------------------------------------------------
+
+  defp device_manager do
+    case Process.whereis(Manager) do
+      nil -> {:error, :unsupported_capability, %{reason: "这台宿主没有运行设备管理，设备相关工具不可用"}}
+      pid -> {:ok, pid}
+    end
+  end
+
+  defp lease("acquire", manager, device_id, run_id, _generation, ttl_seconds) do
+    Manager.acquire_lease(manager, device_id, run_id, ttl_seconds_opts(ttl_seconds))
+  end
+
+  defp lease("renew", manager, device_id, run_id, generation, ttl_seconds)
+       when is_integer(generation) and generation >= 1 do
+    Manager.renew_lease(manager, device_id, run_id, generation, ttl_seconds_opts(ttl_seconds))
+  end
+
+  defp lease("release", manager, device_id, run_id, generation, _ttl_seconds)
+       when is_integer(generation) and generation >= 1 do
+    Manager.release_lease(manager, device_id, run_id, generation)
+  end
+
+  defp lease(action, _manager, _device_id, _run_id, _generation, _ttl_seconds) do
+    {:error, :invalid_arguments, %{action: action, reason: "renew/release 必须带上的代次 generation"}}
+  end
+
+  defp ttl_seconds_opts(nil), do: []
+  defp ttl_seconds_opts(seconds) when is_integer(seconds), do: [ttl_seconds: seconds]
+  defp ttl_seconds_opts(other), do: [ttl_seconds: other]
 
   # ------------------------------------------------------------------
   # Projection rules
