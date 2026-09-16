@@ -113,7 +113,9 @@ defmodule SymphonyElixir.Experience.DefaultArityTest do
     assert {:ok, _} = DemoAdapter.transition("demo-issue-42", "Done")
     assert {:ok, _} = DemoAdapter.comment("demo-issue-42", "意见")
 
-    assert {:error, :unsupported_capability, _} = DemoAdapter.update_workpad_plan("demo-issue-42", %{})
+    assert {:ok, %{plan: %{"plan_revision" => "r14", "verdict" => "adopted"}}} =
+             DemoAdapter.update_workpad_plan("demo-issue-42", %{plan_revision: "r14", verdict: :adopted})
+
     assert :ok = DemoAdapter.reset()
 
     assert {:ok, issue} = DemoAdapter.get_issue("demo-issue-42")
@@ -163,6 +165,16 @@ defmodule SymphonyElixir.Experience.DefaultArityTest do
     assert {:error, :missing_linear_project_slug, _} = LinearWorkbenchAdapter.find_operation_marker("i-1")
     assert {:error, :missing_linear_project_slug, _} = LinearWorkbenchAdapter.get_workpad("i-1")
     assert {:error, :missing_linear_project_slug, _} = LinearWorkbenchAdapter.update_workpad_plan("i-1", %{})
+    assert {:ok, nil} = DemoAdapter.get_workpad("demo-issue-42")
+    # The short arity registers under the module's own name, which the running
+    # application already holds.
+    assert {:error, {:already_started, pid}} = SymphonyElixir.Experience.Supervisor.start_link()
+    assert is_pid(pid)
+
+    name = Module.concat(__MODULE__, :AritySupervisor)
+    assert {:ok, own} = SymphonyElixir.Experience.Supervisor.start_link(name: name)
+    assert is_pid(own)
+    Elixir.Supervisor.stop(own)
   end
 
   test "linear metadata classifies every provider state type" do

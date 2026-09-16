@@ -552,6 +552,40 @@ defmodule SymphonyElixir.Experience.QueryTest do
     def get_issue(id, opts), do: if(id == "EMB-42", do: {:ok, hd(elem(list_issues(opts), 1))}, else: {:error, :not_found, %{}})
   end
 
+  test "reports an unreadable store instead of an empty result", %{demo: demo, store: store} = context do
+    broken = project(%{store: :missing_store, demo: demo})
+
+    assert {:error, :store_unavailable, %{project_id: @project_id}} = Query.events(broken, %{}, demo_state: demo)
+    assert {:error, :store_unavailable, _} = Query.list_entities(broken, "Evidence", demo_state: demo)
+    assert {:error, :store_unavailable, _} = Query.get_entity(broken, "Evidence", "ev-1", demo_state: demo)
+    assert store == context.store
+  end
+
+  test "an unreadable project degrades the read instead of returning nothing", %{demo: demo, store: store} = context do
+    # A store that answers but cannot open this project is a different failure
+    # from a store that has no records at all.
+    broken = project(context, %{project_id: "../escape"})
+
+    assert {:error, :store_unavailable, %{project_id: "../escape"}} = Query.events(broken, %{}, demo_state: demo)
+
+    # The issue is provider-owned and still readable; only its engineering links
+    # are unavailable.
+    assert {:ok, context_map} = Query.issue_context(broken, "EMB-42", demo_state: demo)
+    assert context_map["evidence_ids"] == []
+    assert context_map["problem_case_ids"] == []
+    assert store == context.store
+  end
+
+  test "defaults a nonsensical event limit", %{store: store} = context do
+    {:ok, _} = Store.emit_event(@project_id, "evidence.registered", "Evidence", "ev-1", server: store)
+
+    assert {:ok, page} = Query.events(project(context), %{limit: "many"}, opts(context))
+    assert length(page["items"]) == 1
+
+    assert {:ok, page} = Query.events(project(context), %{after_seq: "1", limit: 0}, opts(context))
+    assert page["items"] == []
+  end
+
   test "cursor encode and validate round-trip through the public API" do
     cursor = Cursor.encode(%{"project_id" => "p", "filters" => "f", "offset" => 10})
 

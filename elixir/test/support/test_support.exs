@@ -273,15 +273,23 @@ defmodule SymphonyElixir.TestSupport do
   defp workbench_yaml(nil), do: nil
 
   defp workbench_yaml(workbench) when is_map(workbench) do
-    [
-      "workbench:",
+    body =
       workbench
-      |> Enum.map(fn {key, value} -> "  #{key}: #{yaml_value(value)}" end)
       |> Enum.sort()
-      |> Enum.join("\n")
-    ]
-    |> Enum.join("\n")
+      |> Enum.map_join("\n", fn {key, value} -> workbench_entry(key, value) end)
+
+    "workbench:\n" <> body
   end
+
+  # Lists are written as block sequences: the YAML flow form mis-parses multi-byte
+  # scalars in a document this size, and block form is what a hand-written
+  # WORKFLOW.md would use anyway.
+  defp workbench_entry(key, values) when is_list(values) do
+    "  #{key}:\n" <>
+      Enum.map_join(values, "\n", fn value -> "    - #{yaml_value(value)}" end)
+  end
+
+  defp workbench_entry(key, value), do: "  #{key}: #{yaml_value(value)}"
 
   defp server_yaml(nil, nil), do: nil
 

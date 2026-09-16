@@ -1,0 +1,652 @@
+defmodule SymphonyElixirWeb.WorkbenchLiveTest do
+  # The workbench reads through the production registered names, so this module
+  # owns the default store and demonstration state and runs synchronously.
+  use SymphonyElixir.TestSupport
+
+  import Phoenix.ConnTest
+  import Phoenix.LiveViewTest
+
+  alias SymphonyElixir.Experience.{DemoAdapter, Store}
+
+  @endpoint SymphonyElixirWeb.Endpoint
+  @data_root_prefix "symphony-workbench-live"
+
+  setup do
+    root = Path.join(System.tmp_dir!(), "#{@data_root_prefix}-#{System.unique_integer([:positive])}")
+    File.mkdir_p!(root)
+
+    stop_if_running(Store)
+    stop_if_running(DemoAdapter)
+
+    start_test_endpoint()
+    # `restart: :transient` lets one test take the store down deliberately
+    # without the supervisor putting it straight back.
+    start_supervised!(%{id: Store, start: {Store, :start_link, [[data_root: root]]}, restart: :transient})
+    # `restart: :transient` lets one test take the provider down deliberately
+    # without the supervisor putting it straight back.
+    start_supervised!(%{id: DemoAdapter, start: {DemoAdapter, :start_link, [[]]}, restart: :transient})
+
+    on_exit(fn ->
+      stop_if_running(Store)
+      stop_if_running(DemoAdapter)
+      File.rm_rf(root)
+    end)
+
+    write_workflow_file!(Workflow.workflow_file_path(),
+      tracker_kind: "memory",
+      tracker_api_token: nil,
+      tracker_project_slug: nil,
+      workbench: %{
+        "enabled" => true,
+        "mode" => "demo",
+        "project_id" => "embedded-lab-demo",
+        "data_root" => root,
+        "display_states" => ["待办", "进行中", "待审阅", "已完成"]
+      }
+    )
+
+    %{root: root}
+  end
+
+  defp start_test_endpoint do
+    endpoint_config =
+      :symphony_elixir
+      |> Application.get_env(SymphonyElixirWeb.Endpoint, [])
+      |> Keyword.merge(server: false, secret_key_base: String.duplicate("s", 64))
+
+    Application.put_env(:symphony_elixir, SymphonyElixirWeb.Endpoint, endpoint_config)
+    start_supervised!({SymphonyElixirWeb.Endpoint, []})
+  end
+
+  defp stop_if_running(module) do
+    case Process.whereis(module) do
+      nil -> :ok
+      pid -> GenServer.stop(pid)
+    end
+  end
+
+  test "the board renders all four columns and every fixture card" do
+    {:ok, view, html} = live(build_conn(), "/workbench/issues")
+
+    assert html =~ "Issues"
+    assert html =~ "演示数据"
+
+    for column <- ["待办", "进行中", "待审阅", "已完成"] do
+      assert render(view) =~ column
+    end
+
+    for identifier <- ["EMB-46", "EMB-45", "EMB-43", "EMB-42", "EMB-39", "EMB-37", "EMB-40", "EMB-35"] do
+      assert render(view) =~ identifier
+    end
+
+    # Board state comes with text, not colour alone.
+    assert render(view) =~ "3 个任务运行中"
+  end
+
+  test "the board links every card to its issue detail page" do
+    {:ok, view, _html} = live(build_conn(), "/workbench/issues")
+
+    assert has_element?(view, "a.wb-issue-card[href='/workbench/issues/EMB-42']")
+  end
+
+  test "the list view shows the same issues with native and display states" do
+    {:ok, _view, html} = live(build_conn(), "/workbench/issues?view=list")
+
+    assert html =~ "原生状态"
+    assert html =~ "显示列"
+    assert html =~ "EMB-42"
+    assert html =~ "In Progress"
+  end
+
+  test "a filter narrows the board and reports an empty result honestly" do
+    {:ok, view, _html} = live(build_conn(), "/workbench/issues?q=EMB-42")
+
+    assert render(view) =~ "EMB-42"
+    refute render(view) =~ "EMB-46"
+
+    {:ok, empty, html} = live(build_conn(), "/workbench/issues?q=no-such-issue")
+
+    assert html =~ "当前筛选没有匹配的 Issue"
+    refute render(empty) =~ "EMB-42"
+  end
+
+  test "the new-issue form offers provider options and records a receipt" do
+    {:ok, view, _html} = live(build_conn(), "/workbench/issues")
+
+    refute has_element?(view, "section[aria-label='新建 Issue']")
+
+    view |> element("button", "新建 Issue") |> render_click()
+    assert has_element?(view, "section[aria-label='新建 Issue']")
+
+    html =
+      view
+      |> form("form[phx-submit='create']", %{"issue" => %{"title" => "看板新建", "description" => "说明", "native_state" => "Todo"}})
+      |> render_submit()
+
+    assert html =~ "看板新建"
+    refute has_element?(view, "section[aria-label='新建 Issue']")
+  end
+
+  test "a failed create keeps the form open and writes no board card" do
+    {:ok, view, _html} = live(build_conn(), "/workbench/issues")
+
+    view |> element("button", "新建 Issue") |> render_click()
+
+    # The form only offers provider states, so an unknown state cannot be picked.
+    assert has_element?(view, "select[name='issue[native_state]'] option[value='Todo']")
+    refute has_element?(view, "select[name='issue[native_state]'] option[value='不存在']")
+
+    # With the provider gone the write cannot land, so the form must stay open
+    # with the operator's input intact rather than closing on a failed write.
+    GenServer.stop(Process.whereis(DemoAdapter.State))
+
+    html =
+      view
+      |> form("form[phx-submit='create']", %{"issue" => %{"title" => "会被拒绝", "native_state" => "Todo"}})
+      |> render_submit()
+
+    assert html =~ "未产生副作用，可修正后重试"
+    assert has_element?(view, "section[aria-label='新建 Issue']")
+    assert has_element?(view, "input[name='issue[title]'][value='会被拒绝']")
+    refute html =~ "wb-issue-title\">会被拒绝"
+  end
+
+  test "the issue detail page renders every recorded fact it has" do
+    {:ok, view, _html} = live(build_conn(), "/workbench/issues/EMB-42")
+
+    assert render(view) =~ "修复显示画面偶发撕裂"
+    assert render(view) =~ "连续切换画面时出现局部撕裂"
+    assert render(view) =~ "进行中"
+
+    # The demonstration provider has no usable native URL, so the page says so
+    # rather than rendering a link that goes nowhere.
+    assert render(view) =~ "当前 provider 未提供原生链接"
+  end
+
+  test "every detail tab renders without inventing engineering facts" do
+    for tab <- ["overview", "activity", "investigation", "changes"] do
+      {:ok, view, _html} = live(build_conn(), "/workbench/issues/EMB-42?tab=#{tab}")
+      html = render(view)
+
+      assert html =~ "修复显示画面偶发撕裂"
+      refute html =~ "根因已确认"
+    end
+  end
+
+  test "an unknown tab falls back to the overview instead of erroring" do
+    {:ok, view, _html} = live(build_conn(), "/workbench/issues/EMB-42?tab=nonsense")
+
+    assert render(view) =~ "描述"
+  end
+
+  test "a missing issue shows a clear not-found page with a way back" do
+    {:ok, _view, html} = live(build_conn(), "/workbench/issues/EMB-999")
+
+    assert html =~ "找不到该 Issue"
+    assert html =~ "返回 Issues"
+  end
+
+  test "the workbench entry point forwards to the issues board" do
+    assert {:error, {:redirect, %{to: "/workbench/issues"}}} = live(build_conn(), "/workbench")
+  end
+
+  test "a comment is recorded as a receipt rather than claimed as delivered" do
+    {:ok, view, _html} = live(build_conn(), "/workbench/issues/EMB-42?tab=investigation")
+
+    html =
+      view
+      |> form("form[phx-submit='comment']", %{"comment" => %{"body" => "请补充一次真机复测。"}})
+      |> render_submit()
+
+    assert html =~ "请补充一次真机复测"
+  end
+
+  test "requesting evidence records the request without resuming anything" do
+    {:ok, view, _html} = live(build_conn(), "/workbench/issues/EMB-42?tab=investigation")
+
+    html = view |> element("button", "要求补充证据") |> render_click()
+
+    assert html =~ "要求补充证据"
+    assert html =~ "不会因此自动恢复执行"
+  end
+
+  test "the investigation tab renders the stored case and evidence" do
+    seed_engineering_records()
+
+    {:ok, view, html} = live(build_conn(), "/workbench/issues/EMB-42?tab=investigation")
+
+    assert html =~ "缓冲区可能在传输结束前被复用"
+    assert html =~ "hypothesis"
+    assert html =~ "连续切换画面时观察到异常"
+    assert html =~ "仅有日志片段"
+    assert html =~ "E-017 串口片段"
+    assert html =~ "serial"
+    assert html =~ "available"
+    assert html =~ "unseen"
+    assert render(view) =~ "尚未连接图像源" == false
+  end
+
+  test "the activity tab renders recorded events and their receipts" do
+    seed_engineering_records()
+
+    {:ok, _view, html} = live(build_conn(), "/workbench/issues/EMB-42?tab=activity")
+
+    assert html =~ "evidence.registered"
+    assert html =~ "已记录日志片段"
+  end
+
+  test "an unsent comment stays a draft until it is submitted" do
+    {:ok, view, _html} = live(build_conn(), "/workbench/issues/EMB-42?tab=investigation")
+
+    html = view |> form("form[phx-submit='comment']", %{"comment" => %{"body" => "草稿"}}) |> render_change()
+
+    assert html =~ "草稿"
+
+    # Nothing was written yet: a typed draft is not a posted comment.
+    assert html =~ "没有针对该 Issue 的操作。"
+  end
+
+  test "a failed comment keeps the typed text and reports why" do
+    {:ok, view, _html} = live(build_conn(), "/workbench/issues/EMB-42?tab=investigation")
+
+    GenServer.stop(Process.whereis(DemoAdapter.State))
+
+    html =
+      view
+      |> form("form[phx-submit='comment']", %{"comment" => %{"body" => "发不出去的意见"}})
+      |> render_submit()
+
+    assert html =~ "可修正后重试"
+    assert html =~ "发不出去的意见"
+
+    {:ok, after_restart} = {:ok, ensure_demo_running()}
+    assert after_restart == :ok
+  end
+
+  defp ensure_demo_running do
+    case Process.whereis(DemoAdapter.State) do
+      nil -> DemoAdapter.start_link([]) |> elem(1) |> then(fn _ -> :ok end)
+      _pid -> :ok
+    end
+  end
+
+  defp seed_engineering_records do
+    {:ok, issue} = DemoAdapter.get_issue("EMB-42")
+
+    {:ok, _} =
+      Store.append(
+        "embedded-lab-demo",
+        "ProblemCase",
+        "DISP-12",
+        0,
+        %{
+          "issue_ids" => [issue.id],
+          "component_ids" => ["display-driver"],
+          "symptom" => "连续切换画面时出现局部撕裂。",
+          "claims" => [
+            %{
+              "id" => "claim-1",
+              "statement" => "缓冲区可能在传输结束前被复用。",
+              "status" => "hypothesis",
+              "supporting_evidence_ids" => [],
+              "contradicting_evidence_ids" => [],
+              "evidence_missing" => true,
+              "limitations" => ["仅有日志片段"]
+            }
+          ],
+          "experiments" => [
+            %{
+              "id" => "exp-1",
+              "occurred_at" => "2026-09-14T10:24:00Z",
+              "question" => "是否为刷新频率导致",
+              "procedure" => "调整刷新频率后复现",
+              "observation" => "连续切换画面时观察到异常。",
+              "outcome" => "refutes",
+              "evidence_ids" => [],
+              "limitations" => []
+            }
+          ],
+          "current_conclusion" => "尚未确认根因。",
+          "next_step" => "增加完成事件标记。",
+          "state" => %{
+            "implementation_status" => "building",
+            "verification_status" => "unverified",
+            "human_review_status" => "unseen",
+            "agent_endorsed" => false
+          },
+          "limitations" => ["事件含义仍需核验"]
+        },
+        %{kind: "agent", id: "run-7", display_name: "Driver Agent"}
+      )
+
+    {:ok, _} =
+      Store.append(
+        "embedded-lab-demo",
+        "Evidence",
+        "E-017",
+        0,
+        %{
+          "issue_ids" => [issue.id],
+          "source_kind" => "serial",
+          "title" => "E-017 串口片段",
+          "raw" => [],
+          "source_refs" => [],
+          "binding" => %{"repo_revision" => nil, "test_profile" => "board_test"},
+          "captured_at" => nil,
+          "received_at" => "2026-09-14T10:36:02Z",
+          "capture_session_id" => "boot-07",
+          "derivation_of" => [],
+          "limitations" => ["仅有日志片段，尚未完成真机复测。"],
+          "supersedes" => nil,
+          "content_status" => "available",
+          "review_status" => "unseen"
+        },
+        nil
+      )
+
+    {:ok, _} =
+      Store.emit_event("embedded-lab-demo", "evidence.registered", "Evidence", "E-017",
+        payload: %{"detail" => "已记录日志片段"},
+        entity_revision: 1
+      )
+  end
+
+  test "a comment with no text is refused instead of recorded as an empty note" do
+    {:ok, view, _html} = live(build_conn(), "/workbench/issues/EMB-42?tab=investigation")
+
+    html = view |> form("form[phx-submit='comment']", %{"comment" => %{"body" => "   "}}) |> render_submit()
+
+    assert html =~ "发送失败"
+    assert html =~ "没有针对该 Issue 的操作。"
+  end
+
+  test "requesting evidence records the question that was typed" do
+    {:ok, view, _html} = live(build_conn(), "/workbench/issues/EMB-42?tab=investigation")
+
+    view |> form("form[phx-submit='comment']", %{"comment" => %{"body" => "请补一次上电时序的原始记录。"}}) |> render_change()
+    html = view |> element("button", "要求补充证据") |> render_click()
+
+    assert html =~ "请补一次上电时序的原始记录。"
+  end
+
+  test "the new-issue form holds its draft server-side" do
+    {:ok, view, _html} = live(build_conn(), "/workbench/issues")
+
+    view |> element("button", "新建 Issue") |> render_click()
+
+    html =
+      view
+      |> form("form[phx-submit='create']", %{"issue" => %{"title" => "草稿标题", "description" => "草稿说明"}})
+      |> render_change()
+
+    assert html =~ "草稿标题"
+    assert html =~ "草稿说明"
+  end
+
+  test "a create carries the chosen assignee to the provider" do
+    {:ok, view, _html} = live(build_conn(), "/workbench/issues")
+
+    view |> element("button", "新建 Issue") |> render_click()
+
+    html =
+      view
+      |> form("form[phx-submit='create']", %{
+        "issue" => %{"title" => "指派给硬件", "native_state" => "Todo", "assignee_id" => "Hardware Agent"}
+      })
+      |> render_submit()
+
+    assert html =~ "指派给硬件"
+
+    {:ok, issue} = DemoAdapter.get_issue("DEMO-9")
+    assert issue.assignee_id == "Hardware Agent"
+  end
+
+  test "the issue detail route reports a disabled workbench instead of an empty page" do
+    write_workflow_file!(Workflow.workflow_file_path(),
+      tracker_kind: "memory",
+      tracker_api_token: nil,
+      tracker_project_slug: nil,
+      workbench: %{"enabled" => false, "mode" => "demo"}
+    )
+
+    {:ok, _view, html} = live(build_conn(), "/workbench/issues/EMB-42")
+
+    assert html =~ "工作台未启用"
+  end
+
+  test "a store outage degrades the detail page instead of crashing it" do
+    # The durable store goes away; the provider-owned parts of the page must
+    # still render, with the engineering sections honestly empty.
+    GenServer.stop(Process.whereis(Store))
+
+    {:ok, _view, html} = live(build_conn(), "/workbench/issues/EMB-42?tab=investigation")
+
+    assert html =~ "修复显示画面偶发撕裂"
+    assert html =~ "没有针对该 Issue 的操作。"
+    assert html =~ "还没有问题分析记录。"
+    assert html =~ "还没有证据记录。"
+  end
+
+  test "a create with no title is refused before reaching the provider" do
+    {:ok, view, _html} = live(build_conn(), "/workbench/issues")
+
+    view |> element("button", "新建 Issue") |> render_click()
+
+    html =
+      view
+      |> form("form[phx-submit='create']", %{"issue" => %{"title" => "   ", "native_state" => "Todo"}})
+      |> render_submit()
+
+    assert html =~ "创建失败"
+    assert has_element?(view, "section[aria-label='新建 Issue']")
+  end
+
+  test "the activity tab shows the receipt of an operation recorded earlier" do
+    {:ok, view, _html} = live(build_conn(), "/workbench/issues/EMB-42?tab=investigation")
+
+    view
+    |> form("form[phx-submit='comment']", %{"comment" => %{"body" => "请补一次真机复测。"}})
+    |> render_submit()
+
+    {:ok, _activity, html} = live(build_conn(), "/workbench/issues/EMB-42?tab=activity")
+
+    assert html =~ "comment"
+    assert html =~ "applied"
+    assert html =~ "received：confirmed"
+  end
+
+  test "the workbench reports a disabled configuration instead of a blank board" do
+    write_workflow_file!(Workflow.workflow_file_path(),
+      tracker_kind: "memory",
+      tracker_api_token: nil,
+      tracker_project_slug: nil,
+      workbench: %{"enabled" => false, "mode" => "demo"}
+    )
+
+    {:ok, _view, html} = live(build_conn(), "/workbench/issues")
+
+    assert html =~ "工作台未启用"
+    assert html =~ "查看运行状态"
+  end
+end
+
+defmodule SymphonyElixirWeb.WorkbenchLiveLinearTest do
+  # The live provider path is exercised through the real workbench pages, with
+  # the host GraphQL client swapped for a fixture so no network is touched.
+  use SymphonyElixir.TestSupport
+
+  import Phoenix.ConnTest
+  import Phoenix.LiveViewTest
+
+  alias SymphonyElixir.Experience.{Project, Query, Store}
+
+  @endpoint SymphonyElixirWeb.Endpoint
+
+  defmodule FakeClient do
+    @moduledoc false
+
+    def graphql(query, _variables) do
+      cond do
+        String.contains?(query, "SymphonyWorkbenchProject") -> project_response()
+        String.contains?(query, "SymphonyWorkbenchIssues") -> list_response()
+        String.contains?(query, "SymphonyWorkbenchComments") -> comments_response()
+        true -> {:ok, %{"data" => %{}}}
+      end
+    end
+
+    defp project_response do
+      {:ok,
+       %{
+         "data" => %{
+           "project" => %{
+             "id" => "project-1",
+             "name" => "Embedded Lab",
+             "teams" => %{
+               "nodes" => [
+                 %{
+                   "id" => "team-1",
+                   "name" => "Embedded",
+                   "states" => %{
+                     "nodes" => [
+                       %{"id" => "s-1", "name" => "Todo", "type" => "unstarted"},
+                       %{"id" => "s-2", "name" => "In Progress", "type" => "started"},
+                       %{"id" => "s-3", "name" => "Done", "type" => "completed"}
+                     ]
+                   }
+                 }
+               ]
+             }
+           }
+         }
+       }}
+    end
+
+    defp list_response do
+      {:ok, %{"data" => %{"issues" => %{"nodes" => [issue_node()], "pageInfo" => %{"hasNextPage" => false}}}}}
+    end
+
+    defp comments_response do
+      {:ok,
+       %{
+         "data" => %{
+           "issue" => %{
+             "comments" => %{
+               "nodes" => [
+                 %{
+                   "id" => "comment-2",
+                   "body" =>
+                     "## Codex Workpad\n\n<!-- symphony-engineering-plan -->\n- decision_id: DISP-12\n- decision_revision: 2\n- decision_sha256: #{String.duplicate("a", 64)}\n- plan_revision: r13\n- constraints: 优先保证稳定性\n- remaining_validation: 真机复测\n<!-- symphony-engineering-plan -->\n",
+                   "resolvedAt" => nil,
+                   "updatedAt" => "2026-09-15T10:00:00Z"
+                 }
+               ],
+               "pageInfo" => %{"hasNextPage" => false, "endCursor" => nil}
+             }
+           }
+         }
+       }}
+    end
+
+    defp issue_node do
+      %{
+        "id" => "issue-42",
+        "identifier" => "EMB-42",
+        "title" => "修复显示画面偶发撕裂",
+        "description" => "描述",
+        "state" => %{"id" => "s-2", "name" => "In Progress"},
+        "url" => "https://example.invalid/EMB-42",
+        "labels" => %{"nodes" => []},
+        "createdAt" => "2026-09-14T10:00:00Z",
+        "updatedAt" => "2026-09-14T10:38:00Z"
+      }
+    end
+  end
+
+  setup do
+    root = Path.join(System.tmp_dir!(), "symphony-workbench-live-linear-#{System.unique_integer([:positive])}")
+    File.mkdir_p!(root)
+
+    if pid = Process.whereis(Store), do: GenServer.stop(pid)
+
+    endpoint_config =
+      :symphony_elixir
+      |> Application.get_env(SymphonyElixirWeb.Endpoint, [])
+      |> Keyword.merge(server: false, secret_key_base: String.duplicate("s", 64))
+
+    Application.put_env(:symphony_elixir, SymphonyElixirWeb.Endpoint, endpoint_config)
+    start_supervised!({SymphonyElixirWeb.Endpoint, []})
+    # `restart: :transient` lets one test take the store down deliberately
+    # without the supervisor putting it straight back.
+    start_supervised!(%{id: Store, start: {Store, :start_link, [[data_root: root]]}, restart: :transient})
+
+    previous = Application.get_env(:symphony_elixir, :linear_client_module)
+    Application.put_env(:symphony_elixir, :linear_client_module, FakeClient)
+
+    on_exit(fn ->
+      case previous do
+        nil -> Application.delete_env(:symphony_elixir, :linear_client_module)
+        value -> Application.put_env(:symphony_elixir, :linear_client_module, value)
+      end
+
+      if pid = Process.whereis(Store), do: GenServer.stop(pid)
+      File.rm_rf(root)
+    end)
+
+    write_workflow_file!(Workflow.workflow_file_path(),
+      tracker_kind: "linear",
+      tracker_api_token: "token",
+      tracker_project_slug: "embedded-lab",
+      workbench: %{
+        "enabled" => true,
+        "mode" => "live",
+        "project_id" => "embedded-lab",
+        "data_root" => root,
+        "display_states" => ["Todo", "In Progress", "Done"]
+      }
+    )
+
+    :ok
+  end
+
+  test "a live board shows provider issues without a demonstration notice" do
+    {:ok, _view, html} = live(build_conn(), "/workbench/issues")
+
+    assert html =~ "EMB-42"
+    assert html =~ "In Progress"
+    refute html =~ "演示数据"
+  end
+
+  test "a board the provider cannot answer for says so instead of rendering empty" do
+    Application.put_env(:symphony_elixir, :linear_client_module, __MODULE__.BrokenClient)
+
+    {:ok, view, html} = live(build_conn(), "/workbench/issues")
+
+    assert html =~ "读取 Issue 失败"
+
+    view |> element("button", "新建 Issue") |> render_click()
+    refute has_element?(view, "select[name='issue[native_state]'] option")
+  end
+
+  defmodule BrokenClient do
+    @moduledoc false
+    def graphql(_query, _variables), do: {:error, {:http_error, 503, "down"}}
+  end
+
+  test "the overview shows the plan reference the executor is running under" do
+    {:ok, _view, html} = live(build_conn(), "/workbench/issues/EMB-42")
+
+    assert html =~ "DISP-12"
+    assert html =~ "r13"
+    refute html =~ "还没有已采用的计划引用"
+
+    # The rendered digest is the plan reference's own hash, computed here rather
+    # than copied from the workpad, so a reader can tell what was run.
+    {:ok, view, _html} = live(build_conn(), "/workbench/issues/EMB-42")
+    assert render(view) =~ "计划摘要"
+
+    {:ok, project} = Project.load()
+    plan = Query.issue_context(project, "EMB-42") |> elem(1) |> Map.fetch!("current_plan")
+    assert String.length(plan["plan_sha256"]) == 64
+    assert plan["decision_revision"] == 2
+  end
+end

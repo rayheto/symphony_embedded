@@ -11,6 +11,7 @@ defmodule SymphonyElixirWeb.Layouts do
       assigns
       |> assign(:csrf_token, Plug.CSRFProtection.get_csrf_token())
       |> assign(:dashboard_css_url, SymphonyElixirWeb.StaticAssets.dashboard_css_url())
+      |> assign(:workbench_css_url, SymphonyElixirWeb.StaticAssets.workbench_css_url())
       |> assign(:favicon_url, SymphonyElixirWeb.StaticAssets.favicon_url())
 
     ~H"""
@@ -20,7 +21,7 @@ defmodule SymphonyElixirWeb.Layouts do
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="csrf-token" content={@csrf_token} />
-        <title>Symphony Observability</title>
+        <title>Symphony</title>
         <link rel="icon" type="image/png" sizes="128x128" href={@favicon_url} />
         <script defer src="/vendor/phoenix_html/phoenix_html.js"></script>
         <script defer src="/vendor/phoenix/phoenix.js"></script>
@@ -42,6 +43,9 @@ defmodule SymphonyElixirWeb.Layouts do
           });
         </script>
         <link rel="stylesheet" href={@dashboard_css_url} />
+        <%!-- The workbench stylesheet is class-scoped (`wb-`), so serving both
+              keeps one root layout without a second HTTP pipeline. --%>
+        <link rel="stylesheet" href={@workbench_css_url} />
       </head>
       <body>
         {@inner_content}
@@ -56,6 +60,20 @@ defmodule SymphonyElixirWeb.Layouts do
     <main class="app-shell">
       {@inner_content}
     </main>
+    """
+  end
+
+  @doc """
+  Layout for every workbench page.
+
+  It only supplies the page frame; the two-row shell, the demonstration notice
+  and the account entry come from `WorkbenchComponents.shell/1` so a page cannot
+  forget them.
+  """
+  @spec workbench(map()) :: Phoenix.LiveView.Rendered.t()
+  def workbench(assigns) do
+    ~H"""
+    {@inner_content}
     """
   end
 end

@@ -1,6 +1,9 @@
 defmodule SymphonyElixirWeb.Router do
   @moduledoc """
-  Router for Symphony's observability dashboard and API.
+  Router for Symphony's observability dashboard, workbench and API.
+
+  `/` and `/api/v1/*` keep their original meaning; the workbench is additive at
+  `/workbench`, so the runtime view never has to move for it.
   """
 
   use Phoenix.Router
@@ -16,6 +19,7 @@ defmodule SymphonyElixirWeb.Router do
 
   scope "/", SymphonyElixirWeb do
     get("/dashboard.css", StaticAssetController, :dashboard_css)
+    get("/workbench.css", StaticAssetController, :workbench_css)
     get("/favicon.png", StaticAssetController, :favicon)
     get("/vendor/phoenix_html/phoenix_html.js", StaticAssetController, :phoenix_html_js)
     get("/vendor/phoenix/phoenix.js", StaticAssetController, :phoenix_js)
@@ -26,6 +30,10 @@ defmodule SymphonyElixirWeb.Router do
     pipe_through(:browser)
 
     live("/", DashboardLive, :index)
+
+    get("/workbench", WorkbenchEntryController, :index)
+    live("/workbench/issues", Workbench.IssuesLive, :index)
+    live("/workbench/issues/:identifier", Workbench.IssueDetailLive, :show)
   end
 
   scope "/", SymphonyElixirWeb do

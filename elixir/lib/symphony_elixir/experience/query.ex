@@ -55,9 +55,9 @@ defmodule SymphonyElixir.Experience.Query do
   @spec list_issues(Project.t(), map(), keyword()) :: {:ok, map()} | {:error, atom(), map()}
   def list_issues(%Project{} = project, params, opts \\ []) do
     filters = normalize_filters(params)
-    limit = clamp_limit(Map.get(params, :limit, @default_limit))
+    limit = clamp_limit(fetch_param(params, :limit))
 
-    with {:ok, cursor} <- Cursor.decode(Map.get(params, :cursor)),
+    with {:ok, cursor} <- Cursor.decode(fetch_param(params, :cursor)),
          :ok <-
            Cursor.validate(cursor, %{
              "project_id" => project.project_id,
@@ -112,20 +112,31 @@ defmodule SymphonyElixir.Experience.Query do
   @spec issue_context(Project.t(), String.t(), keyword()) :: {:ok, map()} | {:error, atom(), map()}
   def issue_context(%Project{} = project, identifier_or_id, opts \\ []) do
     with {:ok, view} <- get_issue(project, identifier_or_id, opts) do
-      plan = fetch_plan(project, view, opts)
-
-      {:ok,
-       %{
-         "issue_id" => view.id,
-         "current_plan" => plan,
-         "problem_case_ids" => ids_for_issue(project, "ProblemCase", view.id, opts),
-         "evidence_ids" => ids_for_issue(project, "Evidence", view.id, opts),
-         "decision_ids" => ids_for_issue(project, "Decision", view.id, opts),
-         "runtime_snapshot_url" => "/api/v1/#{view.identifier}",
-         "provider_workpad_url" => view.url,
-         "fetched_at" => DateTime.utc_now() |> DateTime.to_iso8601()
-       }}
+      {:ok, context_for(project, view, opts)}
     end
+  end
+
+  @doc """
+  The same context, built from a view the caller already holds.
+
+  A page that has just read the issue must not read it again just to describe
+  it, and a store that cannot answer yields an empty context rather than an
+  error: the issue itself is provider-owned and still worth showing.
+  """
+  @spec context_for(Project.t(), IssueView.t(), keyword()) :: map()
+  def context_for(%Project{} = project, %IssueView{} = view, opts \\ []) do
+    related = related_ids(project, view, opts)
+
+    %{
+      "issue_id" => view.id,
+      "current_plan" => fetch_plan(project, view, opts),
+      "problem_case_ids" => Map.get(related, "ProblemCase", []),
+      "evidence_ids" => Map.get(related, "Evidence", []),
+      "decision_ids" => Map.get(related, "Decision", []),
+      "runtime_snapshot_url" => "/api/v1/#{view.identifier}",
+      "provider_workpad_url" => view.url,
+      "fetched_at" => DateTime.utc_now() |> DateTime.to_iso8601()
+    }
   end
 
   @doc """
@@ -137,23 +148,34 @@ defmodule SymphonyElixir.Experience.Query do
   @spec changes(Project.t(), String.t(), keyword()) :: {:ok, map()} | {:error, atom(), map()}
   def changes(%Project{} = project, identifier_or_id, opts \\ []) do
     with {:ok, view} <- get_issue(project, identifier_or_id, opts) do
-      case Keyword.get(opts, :changes_source) do
-        fun when is_function(fun, 1) ->
-          fun.(view)
+      changes_for(project, view, opts)
+    end
+  end
 
-        _none ->
-          {:ok,
-           %{
-             "issue_id" => view.id,
-             "status" => "unavailable",
-             "base_revision" => nil,
-             "head_revision" => nil,
-             "worktree_patch_sha256" => nil,
-             "diff_blob_sha256" => nil,
-             "changed_paths" => [],
-             "limitations" => ["未找到该 Issue 的工作区，无法读取变更范围。"]
-           }}
-      end
+  @doc """
+  The change view for one issue the caller already holds.
+
+  Without a readable workspace there is no diff to show, so the status is
+  `unavailable` with the reason rather than an invented patch.
+  """
+  @spec changes_for(Project.t(), IssueView.t(), keyword()) :: {:ok, map()}
+  def changes_for(_project, %IssueView{} = view, opts \\ []) do
+    case Keyword.get(opts, :changes_source) do
+      fun when is_function(fun, 1) ->
+        fun.(view)
+
+      _none ->
+        {:ok,
+         %{
+           "issue_id" => view.id,
+           "status" => "unavailable",
+           "base_revision" => nil,
+           "head_revision" => nil,
+           "worktree_patch_sha256" => nil,
+           "diff_blob_sha256" => nil,
+           "changed_paths" => [],
+           "limitations" => ["未找到该 Issue 的工作区，无法读取变更范围。"]
+         }}
     end
   end
 
@@ -181,13 +203,15 @@ defmodule SymphonyElixir.Experience.Query do
     with :ok <- known_entity_type(entity_type) do
       {:ok, Store.list(project.project_id, entity_type, server: project.store)}
     end
+  catch
+    :exit, _reason -> {:error, :store_unavailable, %{project_id: project.project_id}}
   end
 
   @spec get_entity(Project.t(), String.t(), String.t(), keyword()) ::
           {:ok, map()} | {:error, atom(), map()}
   def get_entity(%Project{} = project, entity_type, entity_id, _opts \\ []) do
     with :ok <- known_entity_type(entity_type),
-         {:ok, record} <- Store.get(project.project_id, entity_type, entity_id, server: project.store) do
+         {:ok, record} <- find_entity(project, entity_type, entity_id) do
       {:ok, entity_payload(record)}
     else
       {:error, :not_found, _details} -> {:error, :not_found, %{entity_type: entity_type, entity_id: entity_id}}
@@ -195,20 +219,34 @@ defmodule SymphonyElixir.Experience.Query do
     end
   end
 
+  defp find_entity(project, entity_type, entity_id) do
+    Store.get(project.project_id, entity_type, entity_id, server: project.store)
+  catch
+    :exit, _reason -> {:error, :store_unavailable, %{project_id: project.project_id, entity_id: entity_id}}
+  end
+
   @doc "Journal events after a cursor, used to resume a disconnected client."
   @spec events(Project.t(), map(), keyword()) :: {:ok, map()} | {:error, atom(), map()}
   def events(%Project{} = project, params, _opts \\ []) do
-    after_seq = Map.get(params, :after_seq, 0)
-    limit = params |> Map.get(:limit, 100) |> min(500) |> max(1)
+    after_seq = fetch_param(params, :after_seq) || 0
+    limit = params |> fetch_param(:limit) |> clamp_event_limit()
 
     records = Store.replay(project.project_id, after_seq, limit, server: project.store)
 
-    {:ok,
-     %{
-       "items" => Enum.map(records, &event_wire(&1, project)),
-       "next_cursor" => next_event_cursor(records, after_seq),
-       "snapshot_seq" => Store.project_seq(project.project_id, server: project.store)
-     }}
+    if is_list(records) do
+      {:ok,
+       %{
+         "items" => Enum.map(records, &event_wire(&1, project)),
+         "next_cursor" => next_event_cursor(records, after_seq),
+         "snapshot_seq" => Store.project_seq(project.project_id, server: project.store)
+       }}
+    else
+      {:error, :store_unavailable, %{project_id: project.project_id}}
+    end
+  catch
+    # An unreadable store is a degraded read, not a failed request; the caller
+    # must be able to tell it apart from "there are no events".
+    :exit, _reason -> {:error, :store_unavailable, %{project_id: project.project_id}}
   end
 
   @doc """
@@ -346,11 +384,26 @@ defmodule SymphonyElixir.Experience.Query do
     }
   end
 
-  defp ids_for_issue(project, entity_type, issue_id, _opts) do
-    project.project_id
-    |> Store.list(entity_type, server: project.store)
-    |> Enum.filter(&entity_references_issue?(&1, issue_id))
-    |> Enum.map(& &1.entity_id)
+  defp related_ids(project, view, _opts) do
+    for entity_type <- ["ProblemCase", "Evidence", "Decision"], into: %{} do
+      {entity_type, ids_for_issue(project, entity_type, view.id)}
+    end
+  end
+
+  # A store that cannot answer yields no related ids rather than taking the
+  # whole page down; the caller still sees the provider-owned issue.
+  defp ids_for_issue(project, entity_type, issue_id) do
+    case Store.list(project.project_id, entity_type, server: project.store) do
+      records when is_list(records) ->
+        records
+        |> Enum.filter(&entity_references_issue?(&1, issue_id))
+        |> Enum.map(& &1.entity_id)
+
+      _unreadable ->
+        []
+    end
+  catch
+    :exit, _reason -> []
   end
 
   defp entity_references_issue?(record, issue_id) do
@@ -480,14 +533,24 @@ defmodule SymphonyElixir.Experience.Query do
     |> Map.new()
   end
 
+  # LiveView and REST callers hand in string-keyed params; internal callers use
+  # atoms. Both must filter identically.
   defp normalize_filters(params) do
     %{
-      q: Map.get(params, :q),
-      state: Map.get(params, :state),
-      column: Map.get(params, :column),
-      assignee: Map.get(params, :assignee)
+      q: fetch_param(params, :q),
+      state: fetch_param(params, :state),
+      column: fetch_param(params, :column),
+      assignee: fetch_param(params, :assignee)
     }
   end
+
+  defp fetch_param(params, key) do
+    Map.get(params, key) || Map.get(params, to_string(key))
+  end
+
+  defp clamp_event_limit(nil), do: 100
+  defp clamp_event_limit(limit) when is_integer(limit), do: limit |> min(500) |> max(1)
+  defp clamp_event_limit(_limit), do: 100
 
   defp clamp_limit(nil), do: @default_limit
   defp clamp_limit(limit) when is_integer(limit) and limit > 0, do: min(limit, @max_limit)

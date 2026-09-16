@@ -2,12 +2,14 @@ defmodule SymphonyElixirWeb.StaticAssets do
   @moduledoc false
 
   @dashboard_css_path Path.expand("../../priv/static/dashboard.css", __DIR__)
+  @workbench_css_path Path.expand("../../priv/static/workbench.css", __DIR__)
   @favicon_path Path.expand("../../priv/static/favicon.png", __DIR__)
   @phoenix_html_js_path Application.app_dir(:phoenix_html, "priv/static/phoenix_html.js")
   @phoenix_js_path Application.app_dir(:phoenix, "priv/static/phoenix.js")
   @phoenix_live_view_js_path Application.app_dir(:phoenix_live_view, "priv/static/phoenix_live_view.js")
 
   @external_resource @dashboard_css_path
+  @external_resource @workbench_css_path
   @external_resource @favicon_path
   @external_resource @phoenix_html_js_path
   @external_resource @phoenix_js_path
@@ -15,6 +17,10 @@ defmodule SymphonyElixirWeb.StaticAssets do
 
   @dashboard_css File.read!(@dashboard_css_path)
   @dashboard_css_digest :crypto.hash(:sha256, @dashboard_css)
+                        |> Base.encode16(case: :lower)
+                        |> binary_part(0, 12)
+  @workbench_css File.read!(@workbench_css_path)
+  @workbench_css_digest :crypto.hash(:sha256, @workbench_css)
                         |> Base.encode16(case: :lower)
                         |> binary_part(0, 12)
   @favicon File.read!(@favicon_path)
@@ -27,6 +33,7 @@ defmodule SymphonyElixirWeb.StaticAssets do
 
   @assets %{
     "/dashboard.css" => {"text/css", @dashboard_css},
+    "/workbench.css" => {"text/css", @workbench_css},
     "/favicon.png" => {"image/png", @favicon},
     "/vendor/phoenix_html/phoenix_html.js" => {"application/javascript", @phoenix_html_js},
     "/vendor/phoenix/phoenix.js" => {"application/javascript", @phoenix_js},
@@ -35,6 +42,9 @@ defmodule SymphonyElixirWeb.StaticAssets do
 
   @spec dashboard_css_url() :: String.t()
   def dashboard_css_url, do: "/dashboard.css?v=#{@dashboard_css_digest}"
+
+  @spec workbench_css_url() :: String.t()
+  def workbench_css_url, do: "/workbench.css?v=#{@workbench_css_digest}"
 
   @spec favicon_url() :: String.t()
   def favicon_url, do: "/favicon.png?v=#{@favicon_digest}"

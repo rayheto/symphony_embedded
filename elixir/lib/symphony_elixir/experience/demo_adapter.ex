@@ -10,7 +10,7 @@ defmodule SymphonyElixir.Experience.DemoAdapter do
 
   @behaviour SymphonyElixir.Experience.WorkbenchAdapter
 
-  alias SymphonyElixir.Experience.WorkbenchAdapter
+  alias SymphonyElixir.Experience.{Canonical, WorkbenchAdapter}
   alias SymphonyElixir.Tracker.Issue
 
   @fixture "demo.json"
@@ -47,7 +47,7 @@ defmodule SymphonyElixir.Experience.DemoAdapter do
       WorkbenchAdapter.capability("change_state", true, nil),
       WorkbenchAdapter.capability("pause", false, "demo mode has no real tracker to pause"),
       WorkbenchAdapter.capability("resume", false, "demo mode has no real tracker to resume"),
-      WorkbenchAdapter.capability("workpad", false, "demo mode has no provider workpad"),
+      WorkbenchAdapter.capability("workpad", true, nil),
       WorkbenchAdapter.capability("native_url", false, "demo mode has no native issue URL")
     ]
   end
@@ -123,11 +123,22 @@ defmodule SymphonyElixir.Experience.DemoAdapter do
   def find_operation_marker(_issue_id, _opts \\ []), do: {:ok, nil}
 
   @impl true
-  def get_workpad(_issue_id, _opts \\ []), do: {:ok, nil}
+  def get_workpad(issue_id, opts \\ []) do
+    case Map.get(state(opts).workpad_plans, issue_id) do
+      nil -> {:ok, nil}
+      plan -> {:ok, %{id: workpad_id(issue_id), plan: plan}}
+    end
+  end
 
   @impl true
-  def update_workpad_plan(_issue_id, _plan, _opts \\ []) do
-    {:error, :unsupported_capability, %{capability: "workpad", reason: "demo mode has no provider workpad"}}
+  def update_workpad_plan(issue_id, plan, opts \\ []) do
+    with :ok <- demo_running?(opts) do
+      Agent.update(state_name(opts), fn demo_state ->
+        %{demo_state | workpad_plans: Map.put(demo_state.workpad_plans, issue_id, stringify(plan))}
+      end)
+
+      {:ok, %{id: workpad_id(issue_id), plan: stringify(plan)}}
+    end
   end
 
   @impl true
@@ -153,7 +164,7 @@ defmodule SymphonyElixir.Experience.DemoAdapter do
 
   defp initial_state do
     demo = load_fixture()
-    %{demo: demo, issues: demo.issues, comments: %{}}
+    %{demo: demo, issues: demo.issues, comments: %{}, workpad_plans: demo.workpad_plans}
   end
 
   defp load_fixture do
@@ -190,11 +201,40 @@ defmodule SymphonyElixir.Experience.DemoAdapter do
       events: events,
       display: display,
       display_states: display |> Map.get("column_counts", %{}) |> Map.keys(),
+      workpad_plans: workpad_plans(decisions),
       state_options: state_options(issues, display),
       assignees: assignees(issues),
       labels: labels(issues)
     }
   end
+
+  # The fixture declares one adopted decision, so the demonstration board can
+  # show the plan reference the executor is supposed to be running under.
+  defp workpad_plans(decisions) do
+    decisions
+    |> Enum.filter(&(&1["status"] == "adopted"))
+    |> Map.new(fn decision ->
+      {decision["issue_id"],
+       %{
+         "decision_id" => decision["id"],
+         "decision_revision" => decision["revision"],
+         "decision_sha256" => Canonical.sha256(decision),
+         "plan_revision" => decision["plan_revision"],
+         "constraints" => List.wrap(decision["constraints"]),
+         "remaining_validation" => List.wrap(decision["limitations"])
+       }}
+    end)
+  end
+
+  defp workpad_id(issue_id), do: "demo-workpad-" <> issue_id
+
+  defp stringify(plan) do
+    Map.new(plan, fn {key, value} -> {to_string(key), stringify_value(value)} end)
+  end
+
+  defp stringify_value(value) when is_list(value), do: Enum.map(value, &to_string/1)
+  defp stringify_value(value) when is_atom(value) and not is_boolean(value) and not is_nil(value), do: to_string(value)
+  defp stringify_value(value), do: value
 
   defp state_options(issues, _display) do
     native_states = issues |> Enum.map(& &1["native_state"]) |> Enum.uniq()

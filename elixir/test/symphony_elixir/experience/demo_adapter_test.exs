@@ -16,7 +16,10 @@ defmodule SymphonyElixir.Experience.DemoAdapterTest do
     assert capabilities["read"].available
     refute capabilities["pause"].available
     assert capabilities["pause"].reason =~ "demo mode"
-    refute capabilities["workpad"].available
+
+    # The demonstration state can read and update its own plan reference, but it
+    # still has no real tracker to pause or resume.
+    assert capabilities["workpad"].available
     assert DemoAdapter.secret_environment_names() == []
   end
 
@@ -87,13 +90,26 @@ defmodule SymphonyElixir.Experience.DemoAdapterTest do
     assert {:ok, %{recorded: true}} = DemoAdapter.comment("demo-issue-42", "请看这行日志", demo_state: demo)
   end
 
-  test "reports unsupported and unavailable operations instead of faking them", %{demo: demo} do
+  test "never invents a current plan, because the fixture has no adopted decision", %{demo: demo} do
     assert {:ok, nil} = DemoAdapter.find_operation_marker("demo-issue-42", demo_state: demo)
-    assert {:ok, nil} = DemoAdapter.get_workpad("demo-issue-42", demo_state: demo)
     assert DemoAdapter.validate_metadata(demo_state: demo) == :ok
 
-    assert {:error, :unsupported_capability, %{capability: "workpad"}} =
-             DemoAdapter.update_workpad_plan("demo-issue-42", %{}, demo_state: demo)
+    # The fixture's decision for EMB-40 is still a draft, so no issue has a plan
+    # the executor could be running under.
+    assert {:ok, nil} = DemoAdapter.get_workpad("demo-issue-40", demo_state: demo)
+    assert {:ok, nil} = DemoAdapter.get_workpad("demo-issue-42", demo_state: demo)
+  end
+
+  test "updates the demonstrated plan inside the isolated state only", %{demo: demo} do
+    assert {:ok, %{plan: updated}} =
+             DemoAdapter.update_workpad_plan("demo-issue-42", %{plan_revision: "r14", constraints: ["稳定性优先"]}, demo_state: demo)
+
+    assert updated["plan_revision"] == "r14"
+    assert {:ok, %{plan: reread}} = DemoAdapter.get_workpad("demo-issue-42", demo_state: demo)
+    assert reread["plan_revision"] == "r14"
+
+    assert :ok = DemoAdapter.reset(demo_state: demo)
+    assert {:ok, nil} = DemoAdapter.get_workpad("demo-issue-42", demo_state: demo)
   end
 
   test "writes are refused when the demonstration state is not running" do

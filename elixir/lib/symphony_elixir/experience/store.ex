@@ -138,20 +138,25 @@ defmodule SymphonyElixir.Experience.Store do
     GenServer.call(server(opts), {:get, project_id, entity_type, entity_id, revision}, @default_timeout)
   end
 
-  @doc "List the newest revision of every entity of a type, ordered by creation."
-  @spec list(String.t(), String.t(), keyword()) :: [record()]
+  @doc """
+  List the newest revision of every entity of a type, ordered by creation.
+
+  Returns `{:error, ...}` when the project itself cannot be opened, so a caller
+  can tell "this project has no records" apart from "this project is unreadable".
+  """
+  @spec list(String.t(), String.t(), keyword()) :: [record()] | {:error, atom(), map()}
   def list(project_id, entity_type, opts \\ []) do
     GenServer.call(server(opts), {:list, project_id, entity_type}, @default_timeout)
   end
 
   @doc "List every archived revision of a type in journal order."
-  @spec list_revisions(String.t(), String.t(), keyword()) :: [record()]
+  @spec list_revisions(String.t(), String.t(), keyword()) :: [record()] | {:error, atom(), map()}
   def list_revisions(project_id, entity_type, opts \\ []) do
     GenServer.call(server(opts), {:list_revisions, project_id, entity_type}, @default_timeout)
   end
 
   @doc "Replay journal records after `after_seq`, capped at #{@max_replay_limit} entries."
-  @spec replay(String.t(), non_neg_integer(), pos_integer(), keyword()) :: [record()]
+  @spec replay(String.t(), non_neg_integer(), pos_integer(), keyword()) :: [record()] | {:error, atom(), map()}
   def replay(project_id, after_seq, limit \\ @max_replay_limit, opts \\ []) do
     GenServer.call(server(opts), {:replay, project_id, after_seq, min(limit, @max_replay_limit)}, @default_timeout)
   end

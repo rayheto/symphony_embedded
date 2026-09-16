@@ -11,6 +11,9 @@ defmodule SymphonyElixirWeb.StaticAssetController do
   @spec dashboard_css(Conn.t(), map()) :: Conn.t()
   def dashboard_css(conn, _params), do: serve(conn, "/dashboard.css")
 
+  @spec workbench_css(Conn.t(), map()) :: Conn.t()
+  def workbench_css(conn, _params), do: serve(conn, "/workbench.css")
+
   @spec favicon(Conn.t(), map()) :: Conn.t()
   def favicon(conn, _params), do: serve(conn, "/favicon.png")
 
