@@ -178,7 +178,7 @@ defmodule SymphonyElixir.Experience.Store do
 
   @spec get_blob(String.t(), String.t(), keyword()) :: {:ok, binary()} | {:error, atom(), map()}
   def get_blob(project_id, sha256, opts \\ []) do
-    with {:ok, path} <- blob_path(data_root(server(opts)), sha256) do
+    with {:ok, path} <- blob_file(data_root(server(opts)), sha256) do
       read_blob(path, project_id, sha256)
     end
   end
@@ -199,11 +199,23 @@ defmodule SymphonyElixir.Experience.Store do
     end
   end
 
+  @doc """
+  The path of a stored blob, for a host tool that must be handed a file.
+
+  The digest is checked against the stored bytes by `get_blob/3`; this call only
+  answers where the material lives, so a decoder or an export tool can be given
+  a real path without the workbench copying evidence around.
+  """
+  @spec blob_path(String.t(), keyword()) :: {:ok, String.t()} | {:error, atom(), map()}
+  def blob_path(sha256, opts \\ []) do
+    blob_file(data_root(server(opts)), sha256)
+  end
+
   @spec blob_size(String.t(), String.t(), keyword()) :: {:ok, non_neg_integer()} | {:error, atom(), map()}
   def blob_size(_project_id, sha256, opts \\ []) do
     root = data_root(server(opts))
 
-    with {:ok, path} <- blob_path(root, sha256) do
+    with {:ok, path} <- blob_file(root, sha256) do
       case File.stat(path) do
         {:ok, %File.Stat{size: size}} -> {:ok, size}
         {:error, :enoent} -> {:error, :blob_missing, %{sha256: sha256}}
@@ -918,7 +930,7 @@ defmodule SymphonyElixir.Experience.Store do
   defp write_blob(root, binary, media_type, faults) do
     sha256 = digest(binary)
 
-    with {:ok, target} <- blob_path(root, sha256) do
+    with {:ok, target} <- blob_file(root, sha256) do
       if File.regular?(target) do
         {:ok, receipt(sha256, byte_size(binary), media_type)}
       else
@@ -1032,13 +1044,13 @@ defmodule SymphonyElixir.Experience.Store do
   end
 
   defp blob_size_on_disk(root, digest) do
-    with {:ok, path} <- blob_path(root, digest), do: File.stat!(path).size
+    with {:ok, path} <- blob_file(root, digest), do: File.stat!(path).size
   end
 
   defp remove_blob(root, digest) do
     size = blob_size_on_disk(root, digest)
 
-    with {:ok, path} <- blob_path(root, digest) do
+    with {:ok, path} <- blob_file(root, digest) do
       File.rm(path)
     end
 
@@ -1054,7 +1066,7 @@ defmodule SymphonyElixir.Experience.Store do
 
   defp normalize_digests(other), do: {:error, :invalid_blob_digest, %{sha256: other}}
 
-  defp blob_path(root, sha256) when is_binary(sha256) do
+  defp blob_file(root, sha256) when is_binary(sha256) do
     if String.match?(sha256, ~r/^[a-f0-9]{64}$/) do
       {:ok, Path.join([root, "blobs", "sha256", String.slice(sha256, 0, 2), sha256])}
     else
@@ -1062,7 +1074,7 @@ defmodule SymphonyElixir.Experience.Store do
     end
   end
 
-  defp blob_path(_root, sha256), do: {:error, :invalid_blob_digest, %{sha256: sha256}}
+  defp blob_file(_root, sha256), do: {:error, :invalid_blob_digest, %{sha256: sha256}}
 
   # ------------------------------------------------------------------
   # Validation

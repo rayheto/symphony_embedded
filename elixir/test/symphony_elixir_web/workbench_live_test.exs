@@ -439,6 +439,13 @@ defmodule SymphonyElixirWeb.WorkbenchLiveTest do
 
     assert {:ok, %{"target" => ^backup, "excluded" => excluded}} = Store.backup(backup)
     assert "store.lock" in excluded
+
+    # A host tool that needs a real file asks the store where the material is;
+    # the path it gets back is the one the blob was written to.
+    {:ok, fresh} = Store.put_blob("embedded-lab-demo", "for a host tool", "text/plain")
+    assert {:ok, path} = Store.blob_path(fresh["sha256"])
+    assert File.regular?(path)
+    assert File.read!(path) == "for a host tool"
   end
 
   test "a store outage degrades the detail page instead of crashing it" do
