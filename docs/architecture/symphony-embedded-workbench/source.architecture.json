@@ -1,0 +1,178 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Symphony 嵌入式工作台",
+    "locale": "zh-CN",
+    "repository": {
+      "url": "https://github.com/rayheto/symphony_embedded",
+      "revision": "3600812f2e5a6d7bb2bd07676ceef7d57d0287e9"
+    },
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "dispatch-path",
+        "label": "派发主链",
+        "focus": ["tracker", "orchestrator", "agent_runner", "codex"],
+        "note": "Issue 真值来自 Tracker，派发只有 Orchestrator 一个权威。"
+      },
+      {
+        "id": "evidence-path",
+        "label": "证据落盘",
+        "focus": ["codex", "agent_tools", "store", "workbench"],
+        "note": "Agent 只能通过工程工具写入，落盘先于回执。"
+      },
+      {
+        "id": "device-path",
+        "label": "设备观测",
+        "focus": ["workbench", "device_manager", "serial_port", "board"],
+        "note": "原始字节先落 CAS，显示文本只是派生视图。"
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "tracker",
+      "type": "external",
+      "label": "Tracker（Linear）",
+      "sublabel": "Issue 真值",
+      "pos": [38, 300],
+      "size": [140, 60],
+      "sources": [{ "path": "elixir/lib/symphony_elixir/linear/client.ex", "label": "provider client" }]
+    },
+    {
+      "id": "orchestrator",
+      "type": "backend",
+      "label": "Orchestrator",
+      "sublabel": "单点派发 / 重试 / 对账",
+      "pos": [238, 300],
+      "size": [150, 62],
+      "tag": "调度权威",
+      "sources": [{ "path": "elixir/lib/symphony_elixir/orchestrator.ex", "label": "scheduler" }]
+    },
+    {
+      "id": "agent_runner",
+      "type": "backend",
+      "label": "AgentRunner",
+      "sublabel": "workspace + 轮次",
+      "pos": [448, 210],
+      "size": [140, 62],
+      "sources": [{ "path": "elixir/lib/symphony_elixir/agent_runner.ex", "label": "run loop" }]
+    },
+    {
+      "id": "codex",
+      "type": "external",
+      "label": "Codex app-server",
+      "sublabel": "turn 循环",
+      "pos": [448, 400],
+      "size": [140, 62],
+      "sources": [{ "path": "elixir/lib/symphony_elixir/codex/app_server.ex", "label": "app-server" }]
+    },
+    {
+      "id": "agent_tools",
+      "type": "backend",
+      "label": "工程工具",
+      "sublabel": "report / read / plan / import",
+      "pos": [648, 400],
+      "size": [150, 62],
+      "tag": "写入边界",
+      "sources": [
+        { "path": "elixir/lib/symphony_elixir/experience/agent_tools.ex", "label": "tools" },
+        { "path": "elixir/lib/symphony_elixir/codex/dynamic_tool.ex", "label": "tool binding" }
+      ]
+    },
+    {
+      "id": "store",
+      "type": "database",
+      "label": "Experience.Store",
+      "sublabel": "journal + CAS blobs",
+      "pos": [858, 400],
+      "size": [150, 62],
+      "tag": "不可变记录",
+      "sources": [{ "path": "elixir/lib/symphony_elixir/experience/store.ex", "label": "append-only" }]
+    },
+    {
+      "id": "device_manager",
+      "type": "backend",
+      "label": "Devices.Manager",
+      "sublabel": "登记 / 租约 / 采集",
+      "pos": [648, 600],
+      "size": [150, 62],
+      "sources": [{ "path": "elixir/lib/symphony_elixir/devices/manager.ex", "label": "device owner" }]
+    },
+    {
+      "id": "serial_port",
+      "type": "backend",
+      "label": "SerialPort + helper",
+      "sublabel": "JSONL / 原始字节",
+      "pos": [858, 600],
+      "size": [150, 62],
+      "sources": [{ "path": "elixir/lib/symphony_elixir/devices/serial_port.ex", "label": "capture" }]
+    },
+    {
+      "id": "board",
+      "type": "external",
+      "label": "目标板",
+      "sublabel": "串口 / 图像源",
+      "pos": [1068, 600],
+      "size": [124, 60],
+      "tag": "未接入"
+    },
+    {
+      "id": "workbench",
+      "type": "frontend",
+      "label": "工作台页面",
+      "sublabel": "看板 / 设备 / 审阅 / 架构",
+      "pos": [238, 90],
+      "size": [200, 62],
+      "sources": [{ "path": "elixir/lib/symphony_elixir_web/router.ex", "label": "workbench routes" }]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Symphony 宿主进程",
+      "wraps": ["orchestrator", "agent_runner", "agent_tools", "store", "device_manager", "serial_port", "workbench"],
+      "pad": 24
+    }
+  ],
+  "connections": [
+    { "id": "rel_poll", "from": "tracker", "to": "orchestrator", "label": "轮询 Issue", "variant": "emphasis" },
+    { "id": "rel_dispatch", "from": "orchestrator", "to": "agent_runner", "label": "派发", "variant": "emphasis" },
+    { "id": "rel_appserver", "from": "agent_runner", "to": "codex", "label": "app-server", "labelAt": [518, 286] },
+    { "id": "rel_toolcall", "from": "codex", "to": "agent_tools", "label": "工具调用", "variant": "emphasis" },
+    { "id": "rel_append", "from": "agent_tools", "to": "store", "label": "先落盘再回执", "variant": "emphasis", "labelAt": [828, 476] },
+    { "id": "rel_read", "from": "workbench", "to": "store", "label": "读取投影" },
+    { "id": "rel_snapshot", "from": "workbench", "to": "orchestrator", "label": "运行快照", "variant": "dashed", "fromSide": "bottom", "toSide": "top" },
+    { "id": "rel_capture", "from": "device_manager", "to": "serial_port", "label": "采集会话" },
+    { "id": "rel_bytes", "from": "serial_port", "to": "board", "label": "原始字节", "variant": "dashed" },
+    { "id": "rel_chunk", "from": "serial_port", "to": "store", "label": "chunk 落盘", "variant": "emphasis" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "已实现并验证",
+      "items": [
+        "Orchestrator 仍是唯一派发权威，工作台不新增调度循环",
+        "工程工具是 Agent 唯一的写入边界，先落盘再回执",
+        "Store 追加写 + 内容寻址 blob，原件不可改"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "已验证但受限",
+      "items": [
+        "串口采集经 PTY 验证，未在真实目标板上采集",
+        "架构图生成由 Archify 承担，本图来源为宿主自身源码"
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "未验证",
+      "items": [
+        "目标板未接入，设备身份与固件绑定为空",
+        "被管理的嵌入式产品另有 project_id，本图不代表它"
+      ]
+    }
+  ]
+}

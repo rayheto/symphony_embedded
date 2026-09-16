@@ -1,7 +1,7 @@
 defmodule SymphonyElixir.Experience.AgentToolsTest do
   use SymphonyElixir.TestSupport
 
-  alias SymphonyElixir.Experience.{AgentTools, DemoAdapter, Store}
+  alias SymphonyElixir.Experience.{AgentTools, Architecture, Canonical, DemoAdapter, Project, Store}
   alias SymphonyElixir.Tracker.Issue
 
   setup do
@@ -128,7 +128,7 @@ defmodule SymphonyElixir.Experience.AgentToolsTest do
 
     test "declares which advertised tools this build actually implements" do
       assert AgentTools.supported_tools() ==
-               ~w(engineering_report engineering_read engineering_plan_loaded engineering_blob_import)
+               ~w(engineering_report engineering_read engineering_plan_loaded engineering_blob_import engineering_architecture_publish)
     end
 
     test "binds no tools at all when the workbench is off" do
@@ -394,6 +394,124 @@ defmodule SymphonyElixir.Experience.AgentToolsTest do
     end
   end
 
+  describe "engineering_architecture_publish" do
+    @revision "3600812f2e5a6d7bb2bd07676ceef7d57d0287e9"
+
+    defp architect_upload(overrides \\ %{}) do
+      {:ok, project} = Project.load()
+
+      ir = %{
+        "components" => [%{"id" => "core", "label" => "Core"}],
+        "connections" => []
+      }
+
+      {:ok, ir_receipt} = Store.put_blob(project.project_id, Canonical.encode!(ir), "application/json")
+      {:ok, html_receipt} = Store.put_blob(project.project_id, "<html><body><svg></svg></body></html>", "text/html")
+
+      deliver = %{
+        "ok" => true,
+        "validation" => %{"checksPassed" => 9, "checkCount" => 9, "compositionStatus" => "pass", "errors" => 0, "warnings" => 0}
+      }
+
+      {:ok, deliver_receipt} = Store.put_blob(project.project_id, Canonical.encode!(deliver), "application/json")
+
+      manifest =
+        Map.merge(
+          %{
+            "schema_version" => "1.0",
+            "project_id" => project.project_id,
+            "artifact_id" => "art-1",
+            "kind" => "source",
+            "source_repo_url" => "https://github.com/rayheto/symphony_embedded",
+            "source_revision" => @revision,
+            "base_revision" => nil,
+            "plan_revision" => nil,
+            "plan_sources" => [],
+            "skill_commit" => Architecture.skill_commit(),
+            "ir_sha256" => ir_receipt["sha256"],
+            "html_sha256" => html_receipt["sha256"],
+            "deliver_receipt_sha256" => deliver_receipt["sha256"],
+            "browser_receipt_sha256" => nil,
+            "visual_review_sha256" => nil,
+            "components" => [
+              %{
+                "id" => "core",
+                "label" => "Core",
+                "layers" => ["L2"],
+                "source_refs" => [
+                  %{"kind" => "git", "locator" => "elixir/lib/core.ex", "repo_revision" => @revision, "line" => 1, "end_line" => 9}
+                ],
+                "issue_ids" => [],
+                "problem_case_ids" => [],
+                "evidence_ids" => [],
+                "implementation_status" => "planned",
+                "verification_status" => "unverified"
+              }
+            ],
+            "limitations" => [],
+            "relationships" => []
+          },
+          overrides
+        )
+
+      {:ok, manifest_receipt} = Store.put_blob(project.project_id, Canonical.encode!(manifest), "application/json")
+
+      %{
+        "artifact_id" => manifest["artifact_id"],
+        "manifest_blob_sha256" => manifest_receipt["sha256"],
+        "ir_blob_sha256" => ir_receipt["sha256"],
+        "html_blob_sha256" => html_receipt["sha256"]
+      }
+    end
+
+    test "publishes a delivery the host verified itself" do
+      arguments = Map.put(architect_upload(), "idempotency_key", "key-arch-0001")
+
+      result = run("engineering_architecture_publish", arguments)
+
+      assert result["ok"]
+      assert result["artifact"]["generation_status"] == "succeeded"
+      assert [%{"id" => "core"}] = result["artifact"]["components"]
+    end
+
+    test "refuses a delivery whose manifest overstates a component" do
+      arguments =
+        architect_upload(%{
+          "components" => [
+            %{
+              "id" => "core",
+              "label" => "Core",
+              "layers" => ["L2"],
+              "source_refs" => [],
+              "issue_ids" => [],
+              "problem_case_ids" => [],
+              "evidence_ids" => [],
+              "implementation_status" => "integrated",
+              "verification_status" => "passed"
+            }
+          ]
+        })
+        |> Map.put("idempotency_key", "key-arch-0002")
+
+      result = run("engineering_architecture_publish", arguments)
+
+      assert result["error"]["code"] == "implementation_overstated"
+    end
+
+    test "reads every named file back instead of trusting the hash it was given" do
+      arguments =
+        architect_upload()
+        |> Map.put("html_blob_sha256", String.duplicate("a", 64))
+        |> Map.put("idempotency_key", "key-arch-0003")
+
+      assert run("engineering_architecture_publish", arguments)["error"]["code"] == "blob_missing"
+    end
+
+    test "reports a missing argument instead of guessing one" do
+      assert run("engineering_architecture_publish", %{"artifact_id" => "art-1"})["error"]["code"] == "invalid_arguments"
+    end
+  end
+
   describe "engineering_blob_import" do
     setup %{workspace: workspace} do
       bytes = "10:36:01.460  buffer_reuse buf=01\n"
@@ -597,7 +715,7 @@ defmodule SymphonyElixir.Experience.AgentToolsTest do
 
   describe "unimplemented tools" do
     test "says so instead of pretending to succeed" do
-      for tool <- ["engineering_architecture_publish", "engineering_device_action", "engineering_device_lease"] do
+      for tool <- ["engineering_device_action", "engineering_device_lease"] do
         result = run(tool, %{})
 
         assert result["error"]["code"] == "unsupported_capability"

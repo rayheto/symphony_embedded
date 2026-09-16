@@ -2,6 +2,12 @@ schema_version: "1.0"
 status: partially_configured
 symphony_revision: e0ccc83720a42a600a53b61c5f8d3e518bebe1db
 archify_revision: a07fa1d5b2a10cbea110c5a2be2817397a301cdc
+archify_notes:
+  - deliver 退出 0（9/9 artifact checks，0 error/0 warning，来源核验 verified）
+  - visual-check 退出 1：本环境的 Chrome 无法访问外部网络，加载引用 Google Fonts CDN 的
+    HTML 时 Page.loadEventFired 15s 超时；chrome.status=available，因此状态记为 failed 而非
+    skipped
+  - 产物：docs/architecture/symphony-embedded-workbench/
 host:
   os: Ubuntu 24.04.4 LTS (Linux 7.0.0-31-generic)
   architecture: x86_64
@@ -45,6 +51,8 @@ checks:
   board_live: blocked
   dump_live: blocked
   arm64_install: blocked
+  archify_deliver: passed
+  archify_browser_check: failed
 # Record secret names only; never credentials or session tokens.
 secret_names:
   - LINEAR_API_KEY

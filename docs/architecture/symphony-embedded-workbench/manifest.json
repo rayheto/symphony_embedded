@@ -1,0 +1,306 @@
+{
+  "schema_version": "1.0",
+  "project_id": "symphony-embedded-workbench",
+  "artifact_id": "symphony-embedded-workbench-source",
+  "kind": "source",
+  "source_repo_url": "https://github.com/rayheto/symphony_embedded",
+  "source_revision": "3600812f2e5a6d7bb2bd07676ceef7d57d0287e9",
+  "base_revision": null,
+  "plan_revision": null,
+  "plan_sources": [],
+  "skill_commit": "a07fa1d5b2a10cbea110c5a2be2817397a301cdc",
+  "ir_sha256": "be9bf74fe851a690e8b412293b54322e38608ace482f9b002f93e1d8bf7ed1d1",
+  "html_sha256": "5c83acbddd727b1844e17f46f5f6521f87ba4fbeb482c3fd12c5c1207797ea4d",
+  "deliver_receipt_sha256": "22b7689ce855b63f69ad30a8ead24ef3272e2e04e73dacc1637d96d40f1dc0d8",
+  "browser_receipt_sha256": "bcfbe00c81384443328d9a7277586b08c9cc1f2e9677b064876aed0369c2a58b",
+  "visual_review_sha256": null,
+  "components": [
+    {
+      "id": "tracker",
+      "label": "Tracker（Linear）",
+      "layers": [
+        "unclassified"
+      ],
+      "source_refs": [
+        {
+          "kind": "git",
+          "locator": "elixir/lib/symphony_elixir/linear/client.ex",
+          "repo_revision": "3600812f2e5a6d7bb2bd07676ceef7d57d0287e9",
+          "line": null,
+          "end_line": null
+        }
+      ],
+      "issue_ids": [],
+      "problem_case_ids": [],
+      "evidence_ids": [],
+      "implementation_status": "planned",
+      "verification_status": "unverified"
+    },
+    {
+      "id": "orchestrator",
+      "label": "Orchestrator",
+      "layers": [
+        "unclassified"
+      ],
+      "source_refs": [
+        {
+          "kind": "git",
+          "locator": "elixir/lib/symphony_elixir/orchestrator.ex",
+          "repo_revision": "3600812f2e5a6d7bb2bd07676ceef7d57d0287e9",
+          "line": null,
+          "end_line": null
+        }
+      ],
+      "issue_ids": [],
+      "problem_case_ids": [],
+      "evidence_ids": [],
+      "implementation_status": "planned",
+      "verification_status": "unverified"
+    },
+    {
+      "id": "agent_runner",
+      "label": "AgentRunner",
+      "layers": [
+        "unclassified"
+      ],
+      "source_refs": [
+        {
+          "kind": "git",
+          "locator": "elixir/lib/symphony_elixir/agent_runner.ex",
+          "repo_revision": "3600812f2e5a6d7bb2bd07676ceef7d57d0287e9",
+          "line": null,
+          "end_line": null
+        }
+      ],
+      "issue_ids": [],
+      "problem_case_ids": [],
+      "evidence_ids": [],
+      "implementation_status": "planned",
+      "verification_status": "unverified"
+    },
+    {
+      "id": "codex",
+      "label": "Codex app-server",
+      "layers": [
+        "unclassified"
+      ],
+      "source_refs": [
+        {
+          "kind": "git",
+          "locator": "elixir/lib/symphony_elixir/codex/app_server.ex",
+          "repo_revision": "3600812f2e5a6d7bb2bd07676ceef7d57d0287e9",
+          "line": null,
+          "end_line": null
+        }
+      ],
+      "issue_ids": [],
+      "problem_case_ids": [],
+      "evidence_ids": [],
+      "implementation_status": "planned",
+      "verification_status": "unverified"
+    },
+    {
+      "id": "agent_tools",
+      "label": "工程工具",
+      "layers": [
+        "unclassified"
+      ],
+      "source_refs": [
+        {
+          "kind": "git",
+          "locator": "elixir/lib/symphony_elixir/experience/agent_tools.ex",
+          "repo_revision": "3600812f2e5a6d7bb2bd07676ceef7d57d0287e9",
+          "line": null,
+          "end_line": null
+        },
+        {
+          "kind": "git",
+          "locator": "elixir/lib/symphony_elixir/codex/dynamic_tool.ex",
+          "repo_revision": "3600812f2e5a6d7bb2bd07676ceef7d57d0287e9",
+          "line": null,
+          "end_line": null
+        }
+      ],
+      "issue_ids": [],
+      "problem_case_ids": [],
+      "evidence_ids": [],
+      "implementation_status": "planned",
+      "verification_status": "unverified"
+    },
+    {
+      "id": "store",
+      "label": "Experience.Store",
+      "layers": [
+        "unclassified"
+      ],
+      "source_refs": [
+        {
+          "kind": "git",
+          "locator": "elixir/lib/symphony_elixir/experience/store.ex",
+          "repo_revision": "3600812f2e5a6d7bb2bd07676ceef7d57d0287e9",
+          "line": null,
+          "end_line": null
+        }
+      ],
+      "issue_ids": [],
+      "problem_case_ids": [],
+      "evidence_ids": [],
+      "implementation_status": "planned",
+      "verification_status": "unverified"
+    },
+    {
+      "id": "device_manager",
+      "label": "Devices.Manager",
+      "layers": [
+        "unclassified"
+      ],
+      "source_refs": [
+        {
+          "kind": "git",
+          "locator": "elixir/lib/symphony_elixir/devices/manager.ex",
+          "repo_revision": "3600812f2e5a6d7bb2bd07676ceef7d57d0287e9",
+          "line": null,
+          "end_line": null
+        }
+      ],
+      "issue_ids": [],
+      "problem_case_ids": [],
+      "evidence_ids": [],
+      "implementation_status": "planned",
+      "verification_status": "unverified"
+    },
+    {
+      "id": "serial_port",
+      "label": "SerialPort + helper",
+      "layers": [
+        "unclassified"
+      ],
+      "source_refs": [
+        {
+          "kind": "git",
+          "locator": "elixir/lib/symphony_elixir/devices/serial_port.ex",
+          "repo_revision": "3600812f2e5a6d7bb2bd07676ceef7d57d0287e9",
+          "line": null,
+          "end_line": null
+        }
+      ],
+      "issue_ids": [],
+      "problem_case_ids": [],
+      "evidence_ids": [],
+      "implementation_status": "planned",
+      "verification_status": "unverified"
+    },
+    {
+      "id": "board",
+      "label": "目标板",
+      "layers": [
+        "unclassified"
+      ],
+      "source_refs": [],
+      "issue_ids": [],
+      "problem_case_ids": [],
+      "evidence_ids": [],
+      "implementation_status": "planned",
+      "verification_status": "unverified"
+    },
+    {
+      "id": "workbench",
+      "label": "工作台页面",
+      "layers": [
+        "unclassified"
+      ],
+      "source_refs": [
+        {
+          "kind": "git",
+          "locator": "elixir/lib/symphony_elixir_web/router.ex",
+          "repo_revision": "3600812f2e5a6d7bb2bd07676ceef7d57d0287e9",
+          "line": null,
+          "end_line": null
+        }
+      ],
+      "issue_ids": [],
+      "problem_case_ids": [],
+      "evidence_ids": [],
+      "implementation_status": "planned",
+      "verification_status": "unverified"
+    }
+  ],
+  "limitations": [
+    "这是 Symphony 宿主自身源码的架构图，project_id 与受管嵌入式产品分开；它不代表受管产品的拓扑。",
+    "embedded-profile 的 L0–L4 描述受管产品，对宿主代码没有映射，所以组件层次记为 unclassified，不冒充领域分层。",
+    "来源核验读取已提交的 commit blob，未提交的工作区不在覆盖内；本图不声称覆盖 dirty tree。",
+    "未接入目标板与线性项目，因此没有 Issue、问题分析与证据可以关联到组件。"
+  ],
+  "relationships": [
+    {
+      "id": "rel_poll",
+      "from_component_id": "tracker",
+      "to_component_id": "orchestrator",
+      "description": "Tracker 是 Issue 真值，Orchestrator 轮询它",
+      "source_refs": []
+    },
+    {
+      "id": "rel_dispatch",
+      "from_component_id": "orchestrator",
+      "to_component_id": "agent_runner",
+      "description": "派发只有 Orchestrator 一个权威",
+      "source_refs": []
+    },
+    {
+      "id": "rel_appserver",
+      "from_component_id": "agent_runner",
+      "to_component_id": "codex",
+      "description": "AgentRunner 驱动 Codex app-server 的 turn 循环",
+      "source_refs": []
+    },
+    {
+      "id": "rel_toolcall",
+      "from_component_id": "codex",
+      "to_component_id": "agent_tools",
+      "description": "Agent 的工具调用进入宿主工程工具",
+      "source_refs": []
+    },
+    {
+      "id": "rel_append",
+      "from_component_id": "agent_tools",
+      "to_component_id": "store",
+      "description": "工程记录先落盘再回执",
+      "source_refs": []
+    },
+    {
+      "id": "rel_read",
+      "from_component_id": "workbench",
+      "to_component_id": "store",
+      "description": "页面读取 Store 的投影",
+      "source_refs": []
+    },
+    {
+      "id": "rel_snapshot",
+      "from_component_id": "workbench",
+      "to_component_id": "orchestrator",
+      "description": "页面只读 Orchestrator 的运行快照",
+      "source_refs": []
+    },
+    {
+      "id": "rel_capture",
+      "from_component_id": "device_manager",
+      "to_component_id": "serial_port",
+      "description": "采集会话按设备独占",
+      "source_refs": []
+    },
+    {
+      "id": "rel_bytes",
+      "from_component_id": "serial_port",
+      "to_component_id": "board",
+      "description": "原始字节不做有损解码",
+      "source_refs": []
+    },
+    {
+      "id": "rel_chunk",
+      "from_component_id": "serial_port",
+      "to_component_id": "store",
+      "description": "chunk 按内容寻址落盘",
+      "source_refs": []
+    }
+  ]
+}

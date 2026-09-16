@@ -11,7 +11,7 @@ defmodule SymphonyElixir.Experience.AgentTools do
 
   require Logger
 
-  alias SymphonyElixir.Experience.{Canonical, Project, Store}
+  alias SymphonyElixir.Experience.{Architecture, Canonical, Project, Store}
   alias SymphonyElixir.PathSafety
 
   @contract "agent-tools.json"
@@ -49,7 +49,7 @@ defmodule SymphonyElixir.Experience.AgentTools do
   @doc "The tool names this build actually implements."
   @spec supported_tools() :: [String.t()]
   def supported_tools do
-    ~w(engineering_report engineering_read engineering_plan_loaded engineering_blob_import)
+    ~w(engineering_report engineering_read engineering_plan_loaded engineering_blob_import engineering_architecture_publish)
   end
 
   @doc """
@@ -169,6 +169,30 @@ defmodule SymphonyElixir.Experience.AgentTools do
       # Only a durable blob is a receipt: a path inside a workspace that is about
       # to be removed is not evidence.
       success(%{"ok" => true, "blob" => receipt})
+    else
+      {:error, code, details} -> failure(code, details)
+    end
+  end
+
+  # The agent uploads the delivered bytes with `engineering_blob_import` and then
+  # names their hashes here: the manifest, the IR and the HTML are read back from
+  # the store and checked, so a caller cannot publish on the strength of a
+  # summary it wrote itself.
+  defp dispatch("engineering_architecture_publish", arguments, context) do
+    with {:ok, artifact_id} <- fetch(arguments, "artifact_id"),
+         {:ok, manifest_sha} <- fetch(arguments, "manifest_blob_sha256"),
+         {:ok, ir_sha} <- fetch(arguments, "ir_blob_sha256"),
+         {:ok, html_sha} <- fetch(arguments, "html_blob_sha256"),
+         {:ok, artifact} <-
+           Architecture.validate_and_publish(context.project, %{
+             "artifact_id" => artifact_id,
+             "manifest_blob_sha256" => manifest_sha,
+             "ir_blob_sha256" => ir_sha,
+             "html_blob_sha256" => html_sha,
+             "issue_id" => Map.get(context, :issue_id),
+             "idempotency_key" => Map.get(arguments, "idempotency_key")
+           }) do
+      success(%{"ok" => true, "artifact" => artifact})
     else
       {:error, code, details} -> failure(code, details)
     end
