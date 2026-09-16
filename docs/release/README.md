@@ -35,7 +35,7 @@
 | R04 可追溯证据 | `Experience.Store`（journal + CAS blob）、`Query`、`Store.verify/1` | `store_test.exs`（不可变、哈希、故障注入、恢复演练） | 实现并验证 |
 | R05 人类审阅与方向调整 | `Experience.Operations`（采纳/约束/暂停/恢复）、`ReviewsLive` | `operations_test.exs`、`workbench_live_test.exs` | 实现并验证（provider 侧真实切换 `blocked`） |
 | R06 具体项目架构 | `Experience.Architecture`（发布验证、last-good、组件投影、过期判定）、`ArchitectureLive`、隔离 viewer | `architecture_test.exs`、`workbench_live_test.exs`、`docs/architecture/` 真实产物 | **部分**：机制与宿主自身架构产物已验证；受管产品源码图 `blocked`（无目标 repo revision） |
-| R07 设备与真实观测 | `Devices.Manager`/`SerialPort`/helper、设备页、租约、隔离动作 | `manager_test.exs`、`serial_port_test.exs`、`workbench_live_test.exs` | **部分**：PTY 真实字节流已验证；真实板 `blocked` |
+| R07 设备与真实观测 | `Devices.Manager`/`SerialPort`/helper、设备页、租约、隔离动作、`engineering_device_lease`/`engineering_device_action` 工具 | `manager_test.exs`、`serial_port_test.exs`、`agent_tools_test.exs`、`workbench_live_test.exs` | **部分**：PTY 真实字节流已验证；真实板 `blocked` |
 | R08 多模态与故障材料 | `Devices.Decoder`（匹配判定与受控解码）、`Devices.Observation`（dump 落盘、解码作为派生证据、图像源清单与选择） | `decoder_test.exs`、`observation_test.exs` | **部分**：dump 落盘、解码判定与「不给假调用栈」已验证；真机 dump、图像源抓帧 `blocked` |
 | R09 L0–L4 领域规则 | `docs/implementation/config/embedded-profile.yaml` 登记的 profile | profile 本身是配置；架构 manifest 对宿主代码不冒充分层 | **部分**：真实项目的技术绑定 `blocked` |
 | R10 统一美术与可访问性 | `priv/static/workbench.css` Soft Glass tokens、双行壳、五页 | 页面结构与状态文字由 LiveView 测试断言；视觉验收 `blocked` | **部分**：token 与结构齐备，浏览器验收未做 |
