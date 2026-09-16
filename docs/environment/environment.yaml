@@ -1,0 +1,50 @@
+schema_version: "1.0"
+status: partially_configured
+symphony_revision: e0ccc83720a42a600a53b61c5f8d3e518bebe1db
+archify_revision: a07fa1d5b2a10cbea110c5a2be2817397a301cdc
+host:
+  os: Ubuntu 24.04.4 LTS (Linux 7.0.0-31-generic)
+  architecture: x86_64
+  cpu: 28 vCPU
+  memory_bytes: 33243388928
+  elixir: 1.19.5-otp-28
+  erlang: 28.5
+  node: 18.19.1
+  python: 3.12.3
+provider:
+  kind: linear
+  test_project_slug: null
+  paused_state_id: null
+  review_state_id: null
+  blocked_reason: no authorised Linear test project or token available in this environment
+project:
+  repo_url: null
+  revision: null
+  profile_path: docs/implementation/config/embedded-profile.yaml
+agent:
+  codex_version: null
+  executable: null
+  auth_checked: false
+  blocked_reason: no runnable Codex installation available in this environment
+device:
+  identity: null
+  hardware_revision: null
+  port: null
+  build_id: null
+  firmware_sha256: null
+  elf_sha256: null
+  decoder: null
+  blocked_reason: no target board attached; values must be registered on site
+image_source:
+  adapter: null
+  identity: null
+checks:
+  baseline: passed
+  tracker_live: blocked
+  agent_live: blocked
+  board_live: blocked
+  dump_live: blocked
+  arm64_install: blocked
+# Record secret names only; never credentials or session tokens.
+secret_names:
+  - LINEAR_API_KEY
