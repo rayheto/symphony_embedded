@@ -1,0 +1,6 @@
+page	path	bytes
+issues	/workbench/issues	100214
+devices	/workbench/devices	49615
+reviews	/workbench/reviews	50361
+architecture	/workbench/architecture	250871
+dashboard	/	87375

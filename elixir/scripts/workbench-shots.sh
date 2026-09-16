@@ -17,12 +17,20 @@ elixir_root="$(dirname "$here")"
 out_dir="${1:-$elixir_root/../docs/verification/evidence/screenshots}"
 
 port="${SHOT_PORT:-4123}"
+# Point the harness at a host that is already running (a configured instance with
+# real data) instead of the throwaway one it would start itself:
+#   SHOT_BASE_URL=http://127.0.0.1:4123 scripts/workbench-shots.sh
+base_url="${SHOT_BASE_URL:-}"
 root="$(mktemp -d)"
 workflow="$root/WORKFLOW.md"
 log="$root/server.log"
 
 mkdir -p "$out_dir"
 
+if [ -n "$base_url" ]; then
+  server_pid=""
+  trap 'rm -rf "$root"' EXIT
+else
 cat > "$workflow" <<YAML
 ---
 tracker:
@@ -92,6 +100,14 @@ if ! curl -fsS -o /dev/null "http://127.0.0.1:$port/workbench/issues"; then
   cat "$log" >&2
   exit 1
 fi
+fi
+
+target="${base_url:-http://127.0.0.1:$port}"
+
+if ! curl -fsS -o /dev/null "$target/workbench/issues"; then
+  echo "$target does not answer /workbench/issues" >&2
+  exit 1
+fi
 
 chrome="${ARCHIFY_CHROME:-$(command -v google-chrome || command -v chromium || true)}"
 if [ -z "$chrome" ]; then
@@ -99,11 +115,18 @@ if [ -z "$chrome" ]; then
   exit 2
 fi
 
+# `--password-store=basic` is required here, not cosmetic. Without it Chrome asks
+# the session keyring (gnome-keyring over D-Bus) for the cookie-encryption key,
+# and when that call never answers the cookie store never finishes loading -- so
+# every cookie-bearing request (i.e. every navigation) waits forever with no
+# error, and the page never renders. A throwaway screenshot profile has nothing
+# worth protecting, so the in-process store is the right trade.
 shoot() {
   local name="$1" path="$2"
   "$chrome" --headless --disable-gpu --no-sandbox --hide-scrollbars \
+    --password-store=basic \
     --window-size=1440,900 --virtual-time-budget=4000 \
-    --screenshot="$out_dir/$name.png" "http://127.0.0.1:$port$path" >/dev/null 2>&1
+    --screenshot="$out_dir/$name.png" "$target$path" >/dev/null 2>&1
   printf '%s\t%s\t%s\n' "$name" "$path" "$(stat -c %s "$out_dir/$name.png")"
 }
 
