@@ -430,21 +430,6 @@ defmodule SymphonyElixir.Experience.Store do
     end
   end
 
-  defp reclaim(root, wanted) do
-    case journal_digests(root) do
-      {:error, code, details} ->
-        {:error, code, details}
-
-      {:ok, referenced} ->
-        on_disk = blob_digests(root)
-
-        {deleted, kept} =
-          Enum.reduce(wanted, {[], []}, fn digest, acc -> classify_digest(digest, referenced, on_disk, acc) end)
-
-        reclaimed(Enum.map(deleted, &remove_blob(root, &1)), kept, referenced)
-    end
-  end
-
   def handle_call({:rebuild_index, project_id}, _from, state) do
     case ensure_project(state, project_id) do
       {:ok, project, state} ->
@@ -460,6 +445,21 @@ defmodule SymphonyElixir.Experience.Store do
 
       {:error, code, details} ->
         {:reply, {:error, code, details}, state}
+    end
+  end
+
+  defp reclaim(root, wanted) do
+    case journal_digests(root) do
+      {:error, code, details} ->
+        {:error, code, details}
+
+      {:ok, referenced} ->
+        on_disk = blob_digests(root)
+
+        {deleted, kept} =
+          Enum.reduce(wanted, {[], []}, fn digest, acc -> classify_digest(digest, referenced, on_disk, acc) end)
+
+        reclaimed(Enum.map(deleted, &remove_blob(root, &1)), kept, referenced)
     end
   end
 
