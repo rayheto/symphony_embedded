@@ -13,22 +13,34 @@
 
 ## 阻塞点
 
-Chrome 在本环境**无法完成页面加载**。实测：
+Chrome 在本环境**无法完成任何 http/https 导航**。已定位到可复现的一步：Chrome 会与目标建立
+TCP 连接，但在发出任何请求字节前就关闭它。用自建裸 socket 服务器观测：
 
-| 命令 | 结果 |
+| 观测 | 结果 |
 |---|---|
-| `chrome --headless --dump-dom file://<无外部引用的本地 HTML>` | 0.5s 完成 |
-| `chrome --headless --dump-dom file://<交付的架构 HTML>` | 挂住（`fonts.googleapis.com`） |
-| `chrome --headless --dump-dom https://fonts.googleapis.com/...` | 挂住，45s 超时 |
-| `chrome --headless --dump-dom http://127.0.0.1:4123/workbench/issues` | 挂住，45s 超时 |
-| `workbench-shots.sh`（5 页） | 第 1 页截图未返回，300s 超时 |
+| 服务器侧 | 两次 `ACCEPT`（预连接 + 请求），随后两次 `recv` 都返回 0 字节——请求头从未到达 |
+| Chrome 侧 NetLog | `URL_REQUEST_START_JOB`（main frame）→ `TCP_CONNECT` 完成 → 开始发送请求头，之后没有任何响应事件 |
+| `file://` 与 `data:` 导航 | 0.25s 完成（渲染与 `--dump-dom` 路径本身没问题） |
+| Chrome 自身的组件更新器 | 同一次运行里成功传输 HTTPS：161KB/2.4s、248KB/0.36s |
 
-服务器对同一 URL 返回 `200`，所以不是应用侧问题：Chrome 一旦需要建立连接（字体 CDN 或
-LiveView 的 websocket）就停在 `Page.loadEventFired` 之前不返回。这与 M3 里架构产物
-`visual-check` 失败是同一个环境限制（见 `m3-architecture.md`）。
+**已排除代理**。环境里确实有三层代理配置：`http_proxy`/`https_proxy`/`no_proxy` 环境变量、
+gsettings `org.gnome.system.proxy mode=manual`（127.0.0.1:7897）、以及 PAC 端点
+`http://127.0.0.1:33331/commands/pac`（返回 `PROXY 127.0.0.1:7897; SOCKS5 127.0.0.1:7897;
+DIRECT;`）。但下面这些做法表现完全相同：
+
+- `--no-proxy-server`
+- 显式 `--proxy-server=http://127.0.0.1:7897`（本地与远程目标都试过）
+- 清空全部 proxy 环境变量 + `--no-proxy-server` + 全新 `--user-data-dir`
+
+对照：`curl` 直连（`--noproxy '*'`）、走 HTTP 代理、走 SOCKS5 三种方式对同一目标都返回 200。
+
+同样无效的还有：`--headless=shell`、`--single-process`（报 V8 Proxy resolver 不可用）、
+`NetworkServiceInProcess`、以及关闭后台网络与组件更新的整套 flag。
 
 因此 TC17（四页 + 架构页 1440×900 视觉基线、tokens 对比度）与 TC18 的浏览器部分
-（键盘顺序、焦点可见、状态形状）在本环境**没有实际截图可提交**。
+（键盘顺序、焦点可见、状态形状）在本环境**没有实际截图可提交**。残留的不确定：从外部只能
+证明「连接建立后请求字节没有发出」，无法进一步说明是沙箱拦截还是 Chrome 150 在此内核下的
+导航发送路径问题。可用的绕法是在有可用浏览器的机器上跑同一份脚本。
 
 ## 没有据此声称的东西
 
