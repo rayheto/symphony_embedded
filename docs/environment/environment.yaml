@@ -4,8 +4,10 @@ symphony_revision: e0ccc83720a42a600a53b61c5f8d3e518bebe1db
 archify_revision: a07fa1d5b2a10cbea110c5a2be2817397a301cdc
 archify_notes:
   - deliver 退出 0（9/9 artifact checks，0 error/0 warning，来源核验 verified）
-  - visual-check 退出 1：本环境的 Chrome 无法访问外部网络，加载引用 Google Fonts CDN 的
-    HTML 时 Page.loadEventFired 15s 超时；chrome.status=available，因此状态记为 failed 而非
+  - visual-check 退出 1：本环境的 Chrome 无法完成任何需要建立连接的页面加载（引用 Google
+    Fonts CDN 的 HTML 在 Page.loadEventFired 前 15s 超时；本地 http://127.0.0.1 上返回 200 的
+    LiveView 页同样挂住）。curl 对同一 CDN 返回 200（约 1.5s），所以这不是「没有网络」，而是
+    Chrome 的网络栈在此沙箱内无法完成连接。chrome.status=available，因此状态记为 failed 而非
     skipped
   - 产物：docs/architecture/symphony-embedded-workbench/
 host:
