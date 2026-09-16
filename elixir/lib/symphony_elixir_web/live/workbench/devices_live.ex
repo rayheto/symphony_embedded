@@ -26,6 +26,7 @@ defmodule SymphonyElixirWeb.Workbench.DevicesLive do
            unavailable: nil,
            devices: [],
            devices_available?: true,
+           decoders: [],
            selected: nil,
            tab: "overview",
            rows: [],
@@ -204,6 +205,19 @@ defmodule SymphonyElixirWeb.Workbench.DevicesLive do
               <p class="wb-banner wb-banner-warning">
                 在线只表示连接可用，不代表验证通过。控制操作独占，日志可共享查看。
               </p>
+
+              <h3 class="wb-section-title">解码器</h3>
+              <p :if={@decoders == []} class="wb-muted">
+                宿主没有登记解码器，因此没有可用的符号化解码；原始 dump 仍可保存与下载。
+              </p>
+              <ul :if={@decoders != []} class="wb-list">
+                <li :for={decoder <- @decoders}>
+                  <span class="wb-pill">{decoder["display_name"]}</span>
+                  <span class="wb-muted">
+                    {decoder["chip"] || "未登记芯片"} · {if decoder["available"], do: "可用", else: decoder["reason"]}
+                  </span>
+                </li>
+              </ul>
             </div>
 
             <div :if={@tab == "serial"} class="wb-field">
@@ -254,6 +268,9 @@ defmodule SymphonyElixirWeb.Workbench.DevicesLive do
 
             <h2 class="wb-section-title">验证范围</h2>
             <p class="wb-muted">真机复测未完成；本页只展示宿主实际观测到的内容。</p>
+            <p class="wb-muted">
+              符号不匹配或未知时不会给出确定调用栈：解码前先比对记录的 ELF 与芯片。
+            </p>
           </aside>
         </section>
       </WorkbenchComponents.shell>
@@ -280,32 +297,67 @@ defmodule SymphonyElixirWeb.Workbench.DevicesLive do
       end
 
     socket
-    |> assign(devices: devices, devices_available?: Process.whereis(Manager) != nil, selected: selected)
+    |> assign(
+      devices: devices,
+      devices_available?: Process.whereis(Manager) != nil,
+      decoders: list_decoders(),
+      selected: selected
+    )
     |> refresh_rows()
+  end
+
+  # A decoder the host switched off is listed with its reason: hiding it would
+  # make a missing capability look like a missing feature.
+  defp list_decoders do
+    case manager_call(fn -> Manager.decoders(Manager) end) do
+      {:error, :manager_unavailable, _details} -> []
+      decoders -> decoders
+    end
   end
 
   # A device manager that is not running is a degraded read, not a broken page:
   # the rest of the workbench keeps working without it.
   defp list_devices do
-    Manager.list(Manager)
-  catch
-    :exit, _reason -> []
+    case manager_call(fn -> Manager.list(Manager) end) do
+      {:error, :manager_unavailable, _details} -> []
+      devices -> devices
+    end
   end
 
+  # One place decides what "the manager is not there" means: it must be checked
+  # before the call and tolerated during it, because a manager can stop while a
+  # request is in flight.
+  defp manager_call(fun) do
+    if Process.whereis(Manager), do: fun.(), else: {:error, :manager_unavailable, %{}}
+  catch
+    :exit, reason -> {:error, :manager_unavailable, %{reason: inspect(reason)}}
+  end
+
+  # Probing is a read like any other: a manager that went away while the page was
+  # open degrades the page to "cannot read the inventory" instead of crashing it.
   defp probe_all(socket) do
-    devices =
-      Enum.map(socket.assigns.devices, fn device ->
+    case probe_devices(socket.assigns.devices) do
+      {:error, :manager_unavailable, _details} ->
+        load(socket)
+
+      devices ->
+        selected =
+          case socket.assigns[:selected] do
+            nil -> nil
+            selected -> Enum.find(devices, &(&1["id"] == selected["id"]))
+          end
+
+        assign(socket, devices: devices, selected: selected, devices_available?: true)
+    end
+  end
+
+  defp probe_devices(devices) do
+    manager_call(fn ->
+      Enum.map(devices, fn device ->
         {:ok, probe} = Manager.probe(Manager, device["id"])
         Map.merge(device, %{"connection_status" => probe["connection_status"]})
       end)
-
-    selected =
-      case socket.assigns[:selected] do
-        nil -> nil
-        selected -> Enum.find(devices, &(&1["id"] == selected["id"]))
-      end
-
-    assign(socket, devices: devices, selected: selected)
+    end)
   end
 
   defp refresh_rows(socket) do

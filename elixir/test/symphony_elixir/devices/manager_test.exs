@@ -46,8 +46,31 @@ defmodule SymphonyElixir.Devices.ManagerTest do
         required_capability: "control"
         idempotent: true
     image_sources: []
-    decoders: []
+    decoders:
+      - key: "addr2line"
+        display_name: "Arm GNU addr2line"
+        absolute_executable: "/bin/echo"
+        chip: "STM32F4"
+        fixed_argv_template: ["-e", "firmware.elf", "{dump}"]
+        available: true
+      - key: "xtensa"
+        display_name: "xtensa-esp32-elf-addr2line"
+        absolute_executable: "/bin/echo"
+        chip: "ESP32"
+        fixed_argv_template: []
+        available: false
     """)
+  end
+
+  test "lists the host's decoders, including the ones it switched off", context do
+    manager = start_manager(context)
+
+    assert [
+             %{"key" => "addr2line", "display_name" => "Arm GNU addr2line", "chip" => "STM32F4", "available" => true, "reason" => nil},
+             %{"key" => "xtensa", "available" => false, "reason" => reason}
+           ] = Manager.decoders(manager)
+
+    assert reason =~ "不可用"
   end
 
   defp start_manager(context, opts \\ []) do

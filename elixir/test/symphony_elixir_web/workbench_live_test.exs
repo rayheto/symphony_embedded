@@ -718,6 +718,114 @@ defmodule SymphonyElixirWeb.WorkbenchLiveTest do
       assert html =~ "devices.yaml"
     end
 
+    test "lists the registered decoders, including the ones the host switched off", context do
+      start_devices_manager(context, """
+      schema_version: "1.0"
+      host_id: "test-host"
+      devices:
+        - key: "board-a"
+          display_name: "开发板 A"
+      actions: []
+      decoders:
+        - key: "addr2line"
+          display_name: "Arm GNU addr2line"
+          absolute_executable: "/bin/echo"
+          chip: "STM32F4"
+          fixed_argv_template: ["{dump}"]
+          available: true
+        - key: "xtensa"
+          display_name: "xtensa-addr2line"
+          absolute_executable: "/bin/echo"
+          chip: "ESP32"
+          fixed_argv_template: ["{dump}"]
+          available: false
+      """)
+
+      {:ok, view, _html} = live(build_conn(), "/workbench/devices?device=board-a&tab=overview")
+
+      html = render(view)
+      assert html =~ "Arm GNU addr2line"
+      assert html =~ "STM32F4 · 可用"
+      assert html =~ "xtensa-addr2line"
+      assert html =~ "不可用"
+
+      # The same page says why a definite stack is withheld.
+      assert html =~ "符号不匹配或未知时不会给出确定调用栈"
+    end
+
+    test "a host that registered no decoder says so", context do
+      start_devices_manager(context, """
+      schema_version: "1.0"
+      host_id: "test-host"
+      devices:
+        - key: "board-a"
+          display_name: "开发板 A"
+      actions: []
+      """)
+
+      {:ok, _view, html} = live(build_conn(), "/workbench/devices?device=board-a&tab=overview")
+
+      assert html =~ "宿主没有登记解码器"
+      assert html =~ "原始 dump 仍可保存与下载"
+    end
+
+    test "a device manager that dies during a probe is reported, not crashing the page", context do
+      start_devices_manager(context, """
+      schema_version: "1.0"
+      host_id: "test-host"
+      devices:
+        - key: "board-a"
+          display_name: "开发板 A"
+        - key: "board-b"
+          display_name: "开发板 B"
+      actions: []
+      """)
+
+      {:ok, view, _html} = live(build_conn(), "/workbench/devices?device=board-a&tab=overview")
+      GenServer.stop(Process.whereis(Manager))
+
+      # A stand-in registered under the manager's name answers the first probe
+      # and dies on the next one, which is what a manager crashing part-way
+      # through a request looks like from the page.
+      parent = self()
+
+      spawn(fn ->
+        Process.register(self(), Manager)
+        send(parent, :stand_in_registered)
+
+        receive do
+          {:"$gen_call", from, _message} ->
+            GenServer.reply(from, {:ok, %{"connection_status" => "unknown"}})
+
+            receive do
+              {:"$gen_call", _from, _message} -> exit(:boom)
+            end
+        end
+      end)
+
+      assert_receive :stand_in_registered
+
+      html = render_click(view, "refresh")
+      assert html =~ "设备管理未运行"
+    end
+
+    test "a device manager that stops is reported instead of taking the page down", context do
+      start_devices_manager(context, """
+      schema_version: "1.0"
+      host_id: "test-host"
+      devices:
+        - key: "board-a"
+          display_name: "开发板 A"
+      actions: []
+      """)
+
+      {:ok, view, _html} = live(build_conn(), "/workbench/devices")
+      GenServer.stop(Process.whereis(Manager))
+
+      html = render_click(view, "refresh")
+      assert html =~ "设备管理未运行"
+    end
+
     test "lists the registered devices and shows one in detail", context do
       start_devices_manager(context, """
       schema_version: "1.0"

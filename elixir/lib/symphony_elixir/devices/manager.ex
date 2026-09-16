@@ -13,7 +13,7 @@ defmodule SymphonyElixir.Devices.Manager do
 
   require Logger
 
-  alias SymphonyElixir.Devices.{Config, SerialPort}
+  alias SymphonyElixir.Devices.{Config, Decoder, SerialPort}
 
   @default_ttl_seconds 30
   @min_ttl_seconds 5
@@ -88,6 +88,15 @@ defmodule SymphonyElixir.Devices.Manager do
           {:ok, map()} | {:error, atom(), map()}
   def run_action(server \\ __MODULE__, device_key, tool_id, owner_run_id, generation, opts \\ []),
     do: GenServer.call(server, {:run_action, device_key, tool_id, owner_run_id, generation, opts}, 300_000)
+
+  @doc """
+  The decoders the host registered, with the reason any of them is switched off.
+
+  Listed rather than hidden: a host that has no matching symbols for a chip is a
+  fact the device page has to be able to show.
+  """
+  @spec decoders(GenServer.server()) :: [map()]
+  def decoders(server \\ __MODULE__), do: GenServer.call(server, :decoders, 30_000)
 
   @spec sessions(GenServer.server(), String.t() | nil) :: [map()]
   def sessions(server \\ __MODULE__, device_key \\ nil), do: GenServer.call(server, {:sessions, device_key}, 30_000)
@@ -242,6 +251,10 @@ defmodule SymphonyElixir.Devices.Manager do
     else
       {:error, code, details} -> {:reply, {:error, code, details}, state}
     end
+  end
+
+  def handle_call(:decoders, _from, state) do
+    {:reply, Decoder.known(state.config), state}
   end
 
   def handle_call({:recent, device_key, limit}, _from, state) do
