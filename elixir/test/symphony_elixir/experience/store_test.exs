@@ -240,6 +240,103 @@ defmodule SymphonyElixir.Experience.StoreTest do
     end
   end
 
+  describe "reclamation" do
+    test "reports blobs no record names, and only those", %{store: store} do
+      {:ok, kept} = Store.put_blob(@project, "referenced bytes", "text/plain", server: store)
+      {:ok, orphan} = Store.put_blob(@project, "nobody names this", "text/plain", server: store)
+
+      {:ok, _record} =
+        Store.append(@project, "Evidence", "ev-1", 0, payload(%{"blob_sha256" => kept["sha256"]}), @agent, server: store)
+
+      assert {:ok, [%{"sha256" => digest, "size_bytes" => size}]} = Store.orphan_blobs(server: store)
+      assert digest == orphan["sha256"]
+      assert size == byte_size("nobody names this")
+    end
+
+    test "protects a blob named by a project this process never opened", %{store: store, root: root} do
+      {:ok, receipt} = Store.put_blob(@project, "written by an older run", "text/plain", server: store)
+
+      # A journal that this store process has never loaded still protects its
+      # bytes: blobs are shared across the whole data root.
+      other = Path.join([root, "projects", "another-project"])
+      File.mkdir_p!(other)
+
+      File.write!(
+        Path.join(other, "records.jsonl"),
+        Canonical.encode!(%{"payload" => %{"blob_sha256" => receipt["sha256"]}}) <> "\n"
+      )
+
+      assert {:ok, []} = Store.orphan_blobs(server: store)
+
+      assert {:ok, %{"deleted" => [], "kept" => [%{"reason" => "still_referenced"}]}} =
+               Store.reclaim_blobs([receipt["sha256"]], server: store)
+
+      assert {:ok, _bytes} = Store.get_blob(@project, receipt["sha256"], server: store)
+    end
+
+    test "deletes exactly what it was asked to and nothing else", %{store: store, root: root} do
+      {:ok, kept} = Store.put_blob(@project, "referenced bytes", "text/plain", server: store)
+      {:ok, orphan} = Store.put_blob(@project, "unreferenced bytes", "text/plain", server: store)
+
+      {:ok, _record} =
+        Store.append(@project, "Evidence", "ev-1", 0, payload(%{"blob_sha256" => kept["sha256"]}), @agent, server: store)
+
+      assert {:ok, %{"deleted" => [%{"sha256" => deleted, "size_bytes" => 18}], "kept" => [], "freed_bytes" => 18}} =
+               Store.reclaim_blobs([orphan["sha256"]], server: store)
+
+      assert deleted == orphan["sha256"]
+      assert {:error, :blob_missing, _} = Store.get_blob(@project, orphan["sha256"], server: store)
+      assert {:ok, _bytes} = Store.get_blob(@project, kept["sha256"], server: store)
+
+      # A digest nobody has is reported, not silently treated as reclaimed.
+      assert {:ok, %{"deleted" => [], "kept" => [%{"reason" => "not_found"}]}} =
+               Store.reclaim_blobs([String.duplicate("a", 64)], server: store)
+
+      path = Path.join([root, "blobs", "sha256", String.slice(kept["sha256"], 0, 2), kept["sha256"]])
+      assert File.regular?(path)
+    end
+
+    test "will not call a blob orphaned while a journal is unreadable", %{store: store, root: root} do
+      {:ok, receipt} = Store.put_blob(@project, "unreachable while unreadable", "text/plain", server: store)
+
+      # A journal that cannot be read is an error, not an empty reference set:
+      # "cannot prove unreferenced" must never be reported as "unreferenced".
+      project_dir = Path.join([root, "projects", @project])
+      File.mkdir_p!(Path.join(project_dir, "records.jsonl"))
+
+      assert {:error, :journal_unreadable, %{reason: :eisdir}} = Store.orphan_blobs(server: store)
+      assert {:error, :journal_unreadable, %{reason: :eisdir}} = Store.reclaim_blobs([receipt["sha256"]], server: store)
+
+      File.rm_rf!(Path.join(project_dir, "records.jsonl"))
+      assert {:ok, _bytes} = Store.get_blob(@project, receipt["sha256"], server: store)
+    end
+
+    test "refuses a digest that is not a digest", %{store: store} do
+      assert {:error, :invalid_blob_digest, %{sha256: "nope"}} = Store.reclaim_blobs(["nope"], server: store)
+      assert {:error, :invalid_blob_digest, %{sha256: "nope"}} = Store.reclaim_blobs("nope", server: store)
+    end
+
+    test "reports the count of digests the root still references", %{store: store} do
+      {:ok, first} = Store.put_blob(@project, "one", "text/plain", server: store)
+      {:ok, second} = Store.put_blob(@project, "two", "text/plain", server: store)
+      {:ok, _} = Store.put_blob(@project, "three", "text/plain", server: store)
+
+      {:ok, _record} =
+        Store.append(
+          @project,
+          "Evidence",
+          "ev-1",
+          0,
+          payload(%{"a_sha256" => first["sha256"], "b_sha256" => second["sha256"]}),
+          @agent,
+          server: store
+        )
+
+      assert {:ok, %{"referenced" => referenced}} = Store.reclaim_blobs([], server: store)
+      assert referenced >= 2
+    end
+  end
+
   describe "restart and recovery" do
     test "rebuilds the index from journal bytes without renumbering", %{store: store, root: root} do
       {:ok, first} = Store.append(@project, "Evidence", "ev-1", 0, payload(%{"n" => 1}), @agent, server: store)

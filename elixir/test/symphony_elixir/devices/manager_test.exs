@@ -496,6 +496,82 @@ defmodule SymphonyElixir.Devices.ManagerTest do
       assert receipt["exit_code"] != 0
       assert receipt["limitations"] != []
     end
+
+    test "a non-idempotent action with an unknown outcome is quarantined", context do
+      manager = start_manager(context)
+      stub_action(manager, "/bin/false", [], idempotent: false)
+
+      {:ok, lease} = Manager.acquire_lease(manager, "board-a", "run-1")
+
+      assert {:ok, receipt} = Manager.run_action(manager, "board-a", "reboot", "run-1", lease["generation"])
+      assert receipt["outcome"] == "uncertain"
+      assert receipt["quarantined"]["tool_id"] == "reboot"
+      assert receipt["limitations"] != []
+
+      # Acting again on an outcome nobody has seen could repeat a flash or a
+      # write, so the device is held until somebody observes it.
+      assert {:error, :action_quarantined, %{tool_id: "reboot", hint: hint}} =
+               Manager.run_action(manager, "board-a", "reboot", "run-1", lease["generation"])
+
+      assert hint =~ "probe"
+    end
+
+    test "probing the device clears the quarantine and says what it cleared", context do
+      manager = start_manager(context)
+      stub_action(manager, "/bin/false", [], idempotent: false)
+
+      {:ok, lease} = Manager.acquire_lease(manager, "board-a", "run-1")
+      assert {:ok, _receipt} = Manager.run_action(manager, "board-a", "reboot", "run-1", lease["generation"])
+
+      assert {:ok, probe} = Manager.probe(manager, "board-a")
+      assert probe["cleared_quarantine"]["tool_id"] == "reboot"
+
+      stub_action(manager, "/bin/echo", ["rebooting"], idempotent: false)
+
+      assert {:ok, receipt} = Manager.run_action(manager, "board-a", "reboot", "run-1", lease["generation"])
+      assert receipt["outcome"] == "confirmed"
+
+      assert {:ok, again} = Manager.probe(manager, "board-a")
+      assert again["cleared_quarantine"] == nil
+    end
+
+    test "an idempotent action may be retried after a failure", context do
+      manager = start_manager(context)
+      stub_action(manager, "/bin/false", [], idempotent: true)
+
+      {:ok, lease} = Manager.acquire_lease(manager, "board-a", "run-1")
+
+      assert {:ok, receipt} = Manager.run_action(manager, "board-a", "reboot", "run-1", lease["generation"])
+      assert receipt["outcome"] == "uncertain"
+      assert receipt["quarantined"] == nil
+
+      # Repeating an idempotent action cannot change the physical outcome.
+      assert {:ok, _again} = Manager.run_action(manager, "board-a", "reboot", "run-1", lease["generation"])
+    end
+
+    test "a successful action is a confirmed outcome with no hold", context do
+      manager = start_manager(context)
+      {:ok, lease} = Manager.acquire_lease(manager, "board-a", "run-1")
+
+      assert {:ok, receipt} = Manager.run_action(manager, "board-a", "reboot", "run-1", lease["generation"])
+      assert receipt["outcome"] == "confirmed"
+      assert receipt["quarantined"] == nil
+    end
+
+    defp stub_action(manager, executable, argv, opts) do
+      :sys.replace_state(manager, fn state ->
+        action = hd(state.config.actions)
+
+        updated = %{
+          action
+          | executable: executable,
+            argv: argv,
+            idempotent: Keyword.get(opts, :idempotent, action.idempotent)
+        }
+
+        %{state | config: %{state.config | actions: [updated]}}
+      end)
+    end
   end
 
   describe "capture" do

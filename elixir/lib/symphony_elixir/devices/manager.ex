@@ -29,7 +29,7 @@ defmodule SymphonyElixir.Devices.Manager do
 
   defmodule State do
     @moduledoc false
-    defstruct devices: %{}, config: nil, sessions: %{}, generations: %{}
+    defstruct devices: %{}, config: nil, sessions: %{}, generations: %{}, quarantine: %{}
   end
 
   # ------------------------------------------------------------------
@@ -141,7 +141,17 @@ defmodule SymphonyElixir.Devices.Manager do
     case fetch_device(state, device_key) do
       {:ok, device} ->
         probe = probe_device(device)
-        {:reply, {:ok, probe}, put_device(state, Map.put(device, :last_probe, probe))}
+
+        # Observing the device again is what clears a quarantine: the point of
+        # the hold is that nobody acts on an outcome nobody has seen.
+        cleared = Map.get(state.quarantine, device_key)
+
+        state =
+          state
+          |> Map.put(:quarantine, Map.delete(state.quarantine, device_key))
+          |> put_device(Map.put(device, :last_probe, probe))
+
+        {:reply, {:ok, Map.put(probe, "cleared_quarantine", cleared)}, state}
 
       {:error, code, details} ->
         {:reply, {:error, code, details}, state}
@@ -223,10 +233,12 @@ defmodule SymphonyElixir.Devices.Manager do
   def handle_call({:run_action, device_key, tool_id, owner_run_id, generation, opts}, _from, state) do
     with {:ok, device} <- fetch_device(state, device_key),
          {:ok, action} <- find_action(state, tool_id),
+         :ok <- not_quarantined(state, device_key, tool_id, generation),
          {:ok, lease} <- matching_lease(device, owner_run_id, generation),
          :ok <- check_expiry(lease),
          :ok <- action_preconditions(action, device) do
-      {:reply, run_action(action, device, opts), state}
+      {reply, state} = execute_action(action, device, opts, state)
+      {:reply, reply, state}
     else
       {:error, code, details} -> {:reply, {:error, code, details}, state}
     end
@@ -560,7 +572,7 @@ defmodule SymphonyElixir.Devices.Manager do
     end
   end
 
-  defp run_action(action, device, opts) do
+  defp execute_action(action, device, opts, state) do
     executable = Keyword.get(opts, :executable, action.executable)
     started_at = now()
 
@@ -569,20 +581,64 @@ defmodule SymphonyElixir.Devices.Manager do
     # gone missing is reported through the receipt, not as a silent failure.
     {output, exit_code} = run_executable(executable, action.argv)
 
-    {:ok,
-     %{
-       "device_id" => device.key,
-       "tool_id" => action.tool_id,
-       "executable" => executable,
-       "argv" => action.argv,
-       "exit_code" => exit_code,
-       "output_sha256" => :crypto.hash(:sha256, output) |> Base.encode16(case: :lower),
-       "output_bytes" => byte_size(output),
-       "started_at" => started_at,
-       "finished_at" => now(),
-       "limitations" => if(exit_code == 0, do: [], else: ["动作以非零退出码结束，结果需人工确认。"])
-     }}
+    receipt = %{
+      "device_id" => device.key,
+      "tool_id" => action.tool_id,
+      "executable" => executable,
+      "argv" => action.argv,
+      "exit_code" => exit_code,
+      "outcome" => outcome(exit_code),
+      "output_sha256" => :crypto.hash(:sha256, output) |> Base.encode16(case: :lower),
+      "output_bytes" => byte_size(output),
+      "started_at" => started_at,
+      "finished_at" => now(),
+      "limitations" => limitations(action, exit_code)
+    }
+
+    if quarantines?(action, exit_code) do
+      entry = %{"tool_id" => action.tool_id, "exit_code" => exit_code, "at" => receipt["finished_at"], "receipt_sha256" => digest(receipt)}
+
+      {{:ok, Map.put(receipt, "quarantined", entry)}, Map.put(state, :quarantine, Map.put(state.quarantine, device.key, entry))}
+    else
+      {{:ok, Map.put(receipt, "quarantined", nil)}, state}
+    end
   end
+
+  # A non-zero exit from a non-idempotent tool means the physical outcome is not
+  # known. Acting again could repeat a flash or a write, so the device is held
+  # until somebody observes it.
+  defp quarantines?(%{idempotent: false}, exit_code), do: exit_code != 0
+  defp quarantines?(_action, _exit_code), do: false
+
+  defp not_quarantined(state, device_key, tool_id, generation) do
+    case Map.get(state.quarantine, device_key) do
+      %{"tool_id" => ^tool_id} = entry ->
+        details = %{
+          device_key: device_key,
+          tool_id: tool_id,
+          generation: generation,
+          entry: entry,
+          hint: "先 probe 设备确认物理结果"
+        }
+
+        {:error, :action_quarantined, details}
+
+      _other ->
+        :ok
+    end
+  end
+
+  defp outcome(0), do: "confirmed"
+  defp outcome(_non_zero), do: "uncertain"
+
+  defp limitations(%{idempotent: false}, exit_code) when exit_code != 0 do
+    ["动作以非零退出码结束，结果未确认；该动作非幂等，已进入隔离，需先探测设备。"]
+  end
+
+  defp limitations(_action, 0), do: []
+  defp limitations(_action, _exit_code), do: ["动作以非零退出码结束，结果需人工确认。"]
+
+  defp digest(receipt), do: :crypto.hash(:sha256, :erlang.term_to_binary(receipt)) |> Base.encode16(case: :lower)
 
   defp run_executable(executable, argv) do
     System.cmd(executable, argv, stderr_to_stdout: true)

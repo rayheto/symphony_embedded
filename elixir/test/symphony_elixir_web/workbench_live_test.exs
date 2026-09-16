@@ -419,6 +419,18 @@ defmodule SymphonyElixirWeb.WorkbenchLiveTest do
     assert html =~ "工作台未启用"
   end
 
+  test "the workbench's own store can be swept without naming it" do
+    {:ok, receipt} = Store.put_blob("embedded-lab-demo", "nobody names this", "text/plain")
+
+    # The default server is the workbench's own store, so an operator sweeping a
+    # host does not have to know which process it is registered as.
+    assert {:ok, [%{"sha256" => digest}]} = Store.orphan_blobs()
+    assert digest == receipt["sha256"]
+
+    assert {:ok, %{"deleted" => [%{"sha256" => ^digest, "size_bytes" => 17}], "freed_bytes" => 17}} =
+             Store.reclaim_blobs([digest])
+  end
+
   test "a store outage degrades the detail page instead of crashing it" do
     # The durable store goes away; the provider-owned parts of the page must
     # still render, with the engineering sections honestly empty.

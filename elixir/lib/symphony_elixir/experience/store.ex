@@ -221,6 +221,33 @@ defmodule SymphonyElixir.Experience.Store do
     GenServer.call(server(opts), {:rebuild_index, project_id}, @default_timeout)
   end
 
+  @doc """
+  Blobs no journal record in this data root references.
+
+  Unreferenced bytes cannot be reached through the workbench: no record names
+  them, so nothing can read them back. They are only *reported* here, because a
+  blob may also be an original this project is required to keep, and reclamation
+  is a separate explicit call.
+  """
+  @spec orphan_blobs(keyword()) :: {:ok, [map()]} | {:error, atom(), map()}
+  def orphan_blobs(opts \\ []) do
+    GenServer.call(server(opts), :orphan_blobs, @default_timeout)
+  end
+
+  @doc """
+  Delete the named blobs, refusing any the journal still references.
+
+  The reference is rebuilt from the journal files at delete time rather than
+  taken from an earlier report, so a record written in between cannot have the
+  bytes it names deleted underneath it. Reclaiming is therefore safe to run
+  while the workbench is live, and it never touches anything the caller did not
+  name.
+  """
+  @spec reclaim_blobs([String.t()], keyword()) :: {:ok, map()} | {:error, atom(), map()}
+  def reclaim_blobs(digests, opts \\ []) do
+    GenServer.call(server(opts), {:reclaim_blobs, digests}, @default_timeout)
+  end
+
   @spec recovery_reports(keyword()) :: [map()]
   def recovery_reports(opts \\ []) do
     GenServer.call(server(opts), :recovery_reports, @default_timeout)
@@ -386,6 +413,38 @@ defmodule SymphonyElixir.Experience.Store do
     end
   end
 
+  def handle_call(:orphan_blobs, _from, state) do
+    {:reply, orphan_receipts(state.root), state}
+  end
+
+  def handle_call({:reclaim_blobs, digests}, _from, state) do
+    case normalize_digests(digests) do
+      {:error, code, details} ->
+        {:reply, {:error, code, details}, state}
+
+      {:ok, wanted} ->
+        case reclaim(state.root, wanted) do
+          {:error, code, details} -> {:reply, {:error, code, details}, state}
+          result -> {:reply, result, state}
+        end
+    end
+  end
+
+  defp reclaim(root, wanted) do
+    case journal_digests(root) do
+      {:error, code, details} ->
+        {:error, code, details}
+
+      {:ok, referenced} ->
+        on_disk = blob_digests(root)
+
+        {deleted, kept} =
+          Enum.reduce(wanted, {[], []}, fn digest, acc -> classify_digest(digest, referenced, on_disk, acc) end)
+
+        reclaimed(Enum.map(deleted, &remove_blob(root, &1)), kept, referenced)
+    end
+  end
+
   def handle_call({:rebuild_index, project_id}, _from, state) do
     case ensure_project(state, project_id) do
       {:ok, project, state} ->
@@ -402,6 +461,16 @@ defmodule SymphonyElixir.Experience.Store do
       {:error, code, details} ->
         {:reply, {:error, code, details}, state}
     end
+  end
+
+  defp reclaimed(removed, kept, referenced) do
+    {:ok,
+     %{
+       "deleted" => removed,
+       "kept" => kept,
+       "freed_bytes" => removed |> Enum.map(& &1["size_bytes"]) |> Enum.sum(),
+       "referenced" => MapSet.size(referenced)
+     }}
   end
 
   @impl true
@@ -758,6 +827,91 @@ defmodule SymphonyElixir.Experience.Store do
       "created_at" => DateTime.utc_now() |> DateTime.to_iso8601()
     }
   end
+
+  # ------------------------------------------------------------------
+  # Reclamation
+  # ------------------------------------------------------------------
+
+  # Every 64-hex string in every journal file under this root, including projects
+  # this process has never opened: blobs are shared across the whole data root,
+  # so a reference in a project that is not currently loaded still protects them.
+  defp journal_digests(root) do
+    Enum.reduce_while(journal_files(root), {:ok, MapSet.new()}, fn path, {:ok, acc} ->
+      case File.read(path) do
+        {:ok, bytes} -> {:cont, {:ok, MapSet.union(acc, digests_in(bytes))}}
+        {:error, reason} -> {:halt, {:error, :journal_unreadable, %{path: path, reason: reason}}}
+      end
+    end)
+  end
+
+  # A digest is only reclaimed when nothing in the root names it *and* the bytes
+  # are actually there; everything else is reported back with its reason.
+  defp classify_digest(digest, referenced, on_disk, {deleted, kept}) do
+    cond do
+      MapSet.member?(referenced, digest) -> {deleted, kept ++ [%{"sha256" => digest, "reason" => "still_referenced"}]}
+      not MapSet.member?(on_disk, digest) -> {deleted, kept ++ [%{"sha256" => digest, "reason" => "not_found"}]}
+      true -> {deleted ++ [digest], kept}
+    end
+  end
+
+  defp journal_files(root) do
+    Path.join([root, "projects", "*", @journal_name]) |> Path.wildcard()
+  end
+
+  defp digests_in(bytes) do
+    ~r/[a-f0-9]{64}/
+    |> Regex.scan(bytes, return: :binary)
+    |> List.flatten()
+    |> MapSet.new()
+  end
+
+  defp blob_digests(root) do
+    Path.join([root, "blobs", "sha256", "*", "*"])
+    |> Path.wildcard()
+    |> Enum.filter(&File.regular?/1)
+    |> Enum.map(&Path.basename/1)
+    |> MapSet.new()
+  end
+
+  # A journal that cannot be read is an error, not an empty reference set:
+  # "cannot prove unreferenced" must never be reported as "unreferenced".
+  defp orphan_receipts(root) do
+    with {:ok, referenced} <- journal_digests(root) do
+      orphans =
+        root
+        |> blob_digests()
+        |> MapSet.difference(referenced)
+        |> Enum.sort()
+        |> Enum.map(fn digest ->
+          %{"sha256" => digest, "size_bytes" => blob_size_on_disk(root, digest)}
+        end)
+
+      {:ok, orphans}
+    end
+  end
+
+  defp blob_size_on_disk(root, digest) do
+    with {:ok, path} <- blob_path(root, digest), do: File.stat!(path).size
+  end
+
+  defp remove_blob(root, digest) do
+    size = blob_size_on_disk(root, digest)
+
+    with {:ok, path} <- blob_path(root, digest) do
+      File.rm(path)
+    end
+
+    %{"sha256" => digest, "size_bytes" => size}
+  end
+
+  defp normalize_digests(digests) when is_list(digests) do
+    case Enum.reject(digests, &String.match?(&1, ~r/^[a-f0-9]{64}$/)) do
+      [] -> {:ok, digests}
+      bad -> {:error, :invalid_blob_digest, %{sha256: List.first(bad)}}
+    end
+  end
+
+  defp normalize_digests(other), do: {:error, :invalid_blob_digest, %{sha256: other}}
 
   defp blob_path(root, sha256) when is_binary(sha256) do
     if String.match?(sha256, ~r/^[a-f0-9]{64}$/) do
