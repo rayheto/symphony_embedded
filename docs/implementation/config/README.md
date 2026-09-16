@@ -1,0 +1,7 @@
+# 配置应用说明
+
+这些是新增扩展的实施模板；原仓库尚未实现workbench字段，直接拷贝不代表功能可用。M0记录真实环境，M1开始实现配置读取。按原WORKFLOW合并扩展字段和body，保留原review/merge/agent approval政策；example中的原有approval值是所检查基线的示例，不要求部署改变现有信任策略。
+把embedded-profile.yaml复制到WORKFLOW旁；devices.example.yaml复制为devices.yaml并登记真实设备。原provider凭证沿用既有环境变量，使用原adapter实际声明的名字；不要写入profile或浏览器。
+模板的SYMPHONY_TARGET_REPO_URL是hook读取的shell环境变量，指被开发项目。不要把原示例openai/symphony克隆地址误当用户固件项目。target repo由M0明确；data_root必须在workspace.root之外。
+工作台默认live；Demo通过显式mode选择并禁用真实provider/设备写入。演示数据仅为UI fixture；缺少凭证时必须提示unavailable。
+设备新配置只接受登记的host identity/端口/allowlist工具，系统须提供probe结果。现场配置入口完成后，UI选择configured_device_key登记；不接受随意shell命令。所有未填实际值在环境报告中为blocked，不把模板标通过。

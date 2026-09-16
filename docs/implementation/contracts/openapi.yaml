@@ -1,0 +1,4237 @@
+openapi: 3.1.0
+info:
+  title: Symphony Engineering Experience API
+  version: 1.0.0
+  description: Implementation contract; endpoints are proposed, not yet shipped. Original
+    /api/v1 remains unchanged.
+servers:
+- url: /experience/v1
+security:
+- sessionCookie: []
+paths:
+  /snapshot:
+    get:
+      operationId: get_snapshot
+      summary: Snapshot
+      parameters:
+      - &id001
+        name: project_id
+        in: query
+        required: true
+        schema: &id012
+          type: string
+          minLength: 1
+      - name: refresh
+        in: query
+        schema: &id015
+          type: boolean
+        description: Request fresh read/probe under rate limit, never perform control
+          writes
+      responses:
+        '200':
+          description: Confirmed read result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Snapshot'
+        '400': &id003
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401': &id004
+          description: Identity required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403': &id005
+          description: Forbidden / CSRF
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404': &id006
+          description: Not found in project
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409': &id007
+          description: Revision, idempotency, cursor or ownership conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '413': &id008
+          description: Payload too large
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422': &id009
+          description: Semantically invalid / capability unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429': &id010
+          description: Backpressure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503': &id011
+          description: Dependency unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /issues:
+    get:
+      operationId: get_issues
+      summary: IssuePage
+      parameters:
+      - *id001
+      - &id013
+        name: cursor
+        in: query
+        schema: &id002
+          type: string
+      - &id014
+        name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
+      - name: q
+        in: query
+        schema: *id002
+      - name: state
+        in: query
+        schema: *id002
+      - name: assignee
+        in: query
+        schema: *id002
+      - name: display_column
+        in: query
+        schema: *id002
+      responses:
+        '200':
+          description: Confirmed read result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssuePage'
+        '400': *id003
+        '401': *id004
+        '403': *id005
+        '404': *id006
+        '409': *id007
+        '413': *id008
+        '422': *id009
+        '429': *id010
+        '503': *id011
+  /issues/{id}:
+    get:
+      operationId: get_issues_id
+      summary: Issue
+      parameters:
+      - *id001
+      - name: id
+        in: path
+        required: true
+        schema: *id012
+      responses:
+        '200':
+          description: Confirmed read result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Issue'
+        '400': *id003
+        '401': *id004
+        '403': *id005
+        '404': *id006
+        '409': *id007
+        '413': *id008
+        '422': *id009
+        '429': *id010
+        '503': *id011
+  /problems:
+    get:
+      operationId: get_problems
+      summary: ProblemCasePage
+      parameters:
+      - *id001
+      - *id013
+      - *id014
+      - name: issue_id
+        in: query
+        schema: *id002
+      responses:
+        '200':
+          description: Confirmed read result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemCasePage'
+        '400': *id003
+        '401': *id004
+        '403': *id005
+        '404': *id006
+        '409': *id007
+        '413': *id008
+        '422': *id009
+        '429': *id010
+        '503': *id011
+  /problems/{id}:
+    get:
+      operationId: get_problems_id
+      summary: ProblemCase
+      parameters:
+      - *id001
+      - name: id
+        in: path
+        required: true
+        schema: *id012
+      responses:
+        '200':
+          description: Confirmed read result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemCase'
+        '400': *id003
+        '401': *id004
+        '403': *id005
+        '404': *id006
+        '409': *id007
+        '413': *id008
+        '422': *id009
+        '429': *id010
+        '503': *id011
+  /evidence:
+    get:
+      operationId: get_evidence
+      summary: EvidencePage
+      parameters:
+      - *id001
+      - *id013
+      - *id014
+      - name: issue_id
+        in: query
+        schema: *id002
+      responses:
+        '200':
+          description: Confirmed read result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvidencePage'
+        '400': *id003
+        '401': *id004
+        '403': *id005
+        '404': *id006
+        '409': *id007
+        '413': *id008
+        '422': *id009
+        '429': *id010
+        '503': *id011
+  /evidence/{id}:
+    get:
+      operationId: get_evidence_id
+      summary: Evidence
+      parameters:
+      - *id001
+      - name: id
+        in: path
+        required: true
+        schema: *id012
+      responses:
+        '200':
+          description: Confirmed read result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Evidence'
+        '400': *id003
+        '401': *id004
+        '403': *id005
+        '404': *id006
+        '409': *id007
+        '413': *id008
+        '422': *id009
+        '429': *id010
+        '503': *id011
+  /validations:
+    get:
+      operationId: get_validations
+      summary: ValidationPage
+      parameters:
+      - *id001
+      - *id013
+      - *id014
+      responses:
+        '200':
+          description: Confirmed read result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationPage'
+        '400': *id003
+        '401': *id004
+        '403': *id005
+        '404': *id006
+        '409': *id007
+        '413': *id008
+        '422': *id009
+        '429': *id010
+        '503': *id011
+  /validations/{id}:
+    get:
+      operationId: get_validations_id
+      summary: Validation
+      parameters:
+      - *id001
+      - name: id
+        in: path
+        required: true
+        schema: *id012
+      responses:
+        '200':
+          description: Confirmed read result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Validation'
+        '400': *id003
+        '401': *id004
+        '403': *id005
+        '404': *id006
+        '409': *id007
+        '413': *id008
+        '422': *id009
+        '429': *id010
+        '503': *id011
+  /decisions:
+    get:
+      operationId: get_decisions
+      summary: DecisionPage
+      parameters:
+      - *id001
+      - *id013
+      - *id014
+      - name: issue_id
+        in: query
+        schema: *id002
+      responses:
+        '200':
+          description: Confirmed read result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DecisionPage'
+        '400': *id003
+        '401': *id004
+        '403': *id005
+        '404': *id006
+        '409': *id007
+        '413': *id008
+        '422': *id009
+        '429': *id010
+        '503': *id011
+  /decisions/{id}:
+    get:
+      operationId: get_decisions_id
+      summary: Decision
+      parameters:
+      - *id001
+      - name: id
+        in: path
+        required: true
+        schema: *id012
+      responses:
+        '200':
+          description: Confirmed read result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Decision'
+        '400': *id003
+        '401': *id004
+        '403': *id005
+        '404': *id006
+        '409': *id007
+        '413': *id008
+        '422': *id009
+        '429': *id010
+        '503': *id011
+  /reviews:
+    get:
+      operationId: get_reviews
+      summary: ReviewPage
+      parameters:
+      - *id001
+      - *id013
+      - *id014
+      - name: issue_id
+        in: query
+        schema: *id002
+      responses:
+        '200':
+          description: Confirmed read result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewPage'
+        '400': *id003
+        '401': *id004
+        '403': *id005
+        '404': *id006
+        '409': *id007
+        '413': *id008
+        '422': *id009
+        '429': *id010
+        '503': *id011
+  /reviews/{id}:
+    get:
+      operationId: get_reviews_id
+      summary: Review
+      parameters:
+      - *id001
+      - name: id
+        in: path
+        required: true
+        schema: *id012
+      responses:
+        '200':
+          description: Confirmed read result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+        '400': *id003
+        '401': *id004
+        '403': *id005
+        '404': *id006
+        '409': *id007
+        '413': *id008
+        '422': *id009
+        '429': *id010
+        '503': *id011
+  /operations:
+    get:
+      operationId: get_operations
+      summary: OperationPage
+      parameters:
+      - *id001
+      - *id013
+      - *id014
+      - name: issue_id
+        in: query
+        schema: *id002
+      responses:
+        '200':
+          description: Confirmed read result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationPage'
+        '400': *id003
+        '401': *id004
+        '403': *id005
+        '404': *id006
+        '409': *id007
+        '413': *id008
+        '422': *id009
+        '429': *id010
+        '503': *id011
+    post:
+      operationId: submit_operation
+      summary: Submit a typed operation; 202 is accepted, never proof of effect
+      parameters:
+      - name: X-CSRF-Token
+        in: header
+        required: true
+        schema: *id012
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OperationRequest'
+      responses:
+        '202':
+          description: Confirmed read result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Operation'
+        '400': *id003
+        '401': *id004
+        '403': *id005
+        '404': *id006
+        '409': *id007
+        '413': *id008
+        '422': *id009
+        '429': *id010
+        '503': *id011
+  /operations/{id}:
+    get:
+      operationId: get_operations_id
+      summary: Operation
+      parameters:
+      - *id001
+      - name: id
+        in: path
+        required: true
+        schema: *id012
+      responses:
+        '200':
+          description: Confirmed read result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Operation'
+        '400': *id003
+        '401': *id004
+        '403': *id005
+        '404': *id006
+        '409': *id007
+        '413': *id008
+        '422': *id009
+        '429': *id010
+        '503': *id011
+  /devices:
+    get:
+      operationId: get_devices
+      summary: DevicePage
+      parameters:
+      - *id001
+      - *id013
+      - *id014
+      - name: refresh
+        in: query
+        schema: *id015
+        description: Request fresh read/probe under rate limit, never perform control
+          writes
+      responses:
+        '200':
+          description: Confirmed read result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DevicePage'
+        '400': *id003
+        '401': *id004
+        '403': *id005
+        '404': *id006
+        '409': *id007
+        '413': *id008
+        '422': *id009
+        '429': *id010
+        '503': *id011
+  /devices/{id}:
+    get:
+      operationId: get_devices_id
+      summary: Device
+      parameters:
+      - *id001
+      - name: id
+        in: path
+        required: true
+        schema: *id012
+      responses:
+        '200':
+          description: Confirmed read result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+        '400': *id003
+        '401': *id004
+        '403': *id005
+        '404': *id006
+        '409': *id007
+        '413': *id008
+        '422': *id009
+        '429': *id010
+        '503': *id011
+  /sessions:
+    get:
+      operationId: get_sessions
+      summary: DeviceSessionPage
+      parameters:
+      - *id001
+      - *id013
+      - *id014
+      - name: device_id
+        in: query
+        schema: *id002
+      responses:
+        '200':
+          description: Confirmed read result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceSessionPage'
+        '400': *id003
+        '401': *id004
+        '403': *id005
+        '404': *id006
+        '409': *id007
+        '413': *id008
+        '422': *id009
+        '429': *id010
+        '503': *id011
+  /sessions/{id}:
+    get:
+      operationId: get_sessions_id
+      summary: DeviceSession
+      parameters:
+      - *id001
+      - name: id
+        in: path
+        required: true
+        schema: *id012
+      responses:
+        '200':
+          description: Confirmed read result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceSession'
+        '400': *id003
+        '401': *id004
+        '403': *id005
+        '404': *id006
+        '409': *id007
+        '413': *id008
+        '422': *id009
+        '429': *id010
+        '503': *id011
+  /architectures:
+    get:
+      operationId: get_architectures
+      summary: ArchitectureArtifactPage
+      parameters:
+      - *id001
+      - *id013
+      - *id014
+      responses:
+        '200':
+          description: Confirmed read result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArchitectureArtifactPage'
+        '400': *id003
+        '401': *id004
+        '403': *id005
+        '404': *id006
+        '409': *id007
+        '413': *id008
+        '422': *id009
+        '429': *id010
+        '503': *id011
+  /architectures/{id}:
+    get:
+      operationId: get_architectures_id
+      summary: ArchitectureArtifact
+      parameters:
+      - *id001
+      - name: id
+        in: path
+        required: true
+        schema: *id012
+      responses:
+        '200':
+          description: Confirmed read result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArchitectureArtifact'
+        '400': *id003
+        '401': *id004
+        '403': *id005
+        '404': *id006
+        '409': *id007
+        '413': *id008
+        '422': *id009
+        '429': *id010
+        '503': *id011
+  /events:
+    get:
+      operationId: get_events
+      summary: Cursor-based event replay; LiveView push uses same events
+      parameters:
+      - *id001
+      - name: after_seq
+        in: query
+        schema: &id016
+          type: integer
+          minimum: 0
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 500
+          default: 100
+      responses:
+        '200':
+          description: Confirmed read result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventPage'
+        '400': *id003
+        '401': *id004
+        '403': *id005
+        '404': *id006
+        '409': *id007
+        '413': *id008
+        '422': *id009
+        '429': *id010
+        '503': *id011
+  /capabilities:
+    get:
+      operationId: get_capabilities
+      summary: CapabilityPage
+      parameters:
+      - *id001
+      responses:
+        '200':
+          description: Confirmed read result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CapabilityPage'
+        '400': *id003
+        '401': *id004
+        '403': *id005
+        '404': *id006
+        '409': *id007
+        '413': *id008
+        '422': *id009
+        '429': *id010
+        '503': *id011
+  /blobs:
+    post:
+      operationId: upload_blob
+      summary: Stream bytes into project-scoped immutable CAS; register evidence separately
+      parameters:
+      - *id001
+      - name: X-CSRF-Token
+        in: header
+        required: true
+        schema: *id012
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '201':
+          description: Confirmed read result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlobReceipt'
+        '400': *id003
+        '401': *id004
+        '403': *id005
+        '404': *id006
+        '409': *id007
+        '413': *id008
+        '422': *id009
+        '429': *id010
+        '503': *id011
+  /blobs/{sha256}:
+    get:
+      operationId: download_blob
+      summary: Authorized raw download; attachment disposition
+      parameters:
+      - *id001
+      - name: sha256
+        in: path
+        required: true
+        schema: &id017
+          type: string
+          pattern: ^[a-f0-9]{64}$
+      responses:
+        '200':
+          description: Original bytes
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '400': *id003
+        '401': *id004
+        '403': *id005
+        '404': *id006
+        '409': *id007
+        '413': *id008
+        '422': *id009
+        '429': *id010
+        '503': *id011
+  /sessions/{id}/serial:
+    get:
+      operationId: get_sessions_id_serial
+      summary: SerialRowPage
+      parameters:
+      - *id001
+      - *id013
+      - *id014
+      - name: id
+        in: path
+        required: true
+        schema: *id012
+      responses:
+        '200':
+          description: Confirmed read result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SerialRowPage'
+        '400': *id003
+        '401': *id004
+        '403': *id005
+        '404': *id006
+        '409': *id007
+        '413': *id008
+        '422': *id009
+        '429': *id010
+        '503': *id011
+  /sessions/{id}/export:
+    get:
+      operationId: export_session
+      summary: Raw chunks plus session, gap and byte-index metadata in ZIP
+      parameters:
+      - *id001
+      - name: id
+        in: path
+        required: true
+        schema: *id012
+      responses:
+        '200':
+          description: ZIP export
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+        '400': *id003
+        '401': *id004
+        '403': *id005
+        '404': *id006
+        '409': *id007
+        '413': *id008
+        '422': *id009
+        '429': *id010
+        '503': *id011
+  /issues/{id}/context:
+    get:
+      operationId: get_issue_context
+      summary: IssueContext
+      parameters:
+      - name: project_id
+        in: query
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      responses:
+        '200':
+          description: Confirmed read result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssueContext'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Identity required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden / CSRF
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not found in project
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Revision, idempotency, cursor or ownership conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '413':
+          description: Payload too large
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Semantically invalid / capability unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Backpressure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Dependency unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /issues/{id}/changes:
+    get:
+      operationId: get_issue_changes
+      summary: ChangesView
+      parameters:
+      - name: project_id
+        in: query
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      responses:
+        '200':
+          description: Confirmed read result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChangesView'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Identity required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden / CSRF
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not found in project
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Revision, idempotency, cursor or ownership conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '413':
+          description: Payload too large
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Semantically invalid / capability unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Backpressure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Dependency unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /devices/{id}/build-records:
+    get:
+      operationId: get_device_build_records
+      summary: Known build records; never infer association from label alone
+      parameters:
+      - name: project_id
+        in: query
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      responses:
+        '200':
+          description: Confirmed read result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BuildRecordPage'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Identity required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden / CSRF
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not found in project
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Revision, idempotency, cursor or ownership conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '413':
+          description: Payload too large
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Semantically invalid / capability unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Backpressure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Dependency unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /provider-metadata:
+    get:
+      operationId: get_providermetadata
+      summary: ProviderMetadata
+      parameters:
+      - name: project_id
+        in: query
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: refresh
+        in: query
+        schema: *id015
+        description: Request fresh read/probe under rate limit, never perform control
+          writes
+      responses:
+        '200':
+          description: Confirmed read result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProviderMetadata'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Identity required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden / CSRF
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not found in project
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Revision, idempotency, cursor or ownership conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '413':
+          description: Payload too large
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Semantically invalid / capability unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Backpressure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Dependency unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /devices/{id}/observations:
+    get:
+      operationId: get_deviceobservations
+      summary: DeviceObservations
+      parameters:
+      - name: project_id
+        in: query
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      responses:
+        '200':
+          description: Confirmed read result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceObservations'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Identity required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden / CSRF
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not found in project
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Revision, idempotency, cursor or ownership conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '413':
+          description: Payload too large
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Semantically invalid / capability unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Backpressure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Dependency unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: _symphony_elixir_key
+      description: Reuse actual configured Phoenix session cookie; this name must
+        match endpoint configuration at M0. Loopback may use server-established local
+        actor.
+  schemas:
+    Binding:
+      type: object
+      properties:
+        repo_revision:
+          anyOf:
+          - type: string
+            pattern: ^[a-f0-9]{40}$
+          - type: 'null'
+        worktree_patch_sha256:
+          anyOf:
+          - type: string
+            pattern: ^[a-f0-9]{64}$
+          - type: 'null'
+        build_id:
+          anyOf:
+          - type: string
+            minLength: 1
+          - type: 'null'
+        firmware_sha256:
+          anyOf:
+          - type: string
+            pattern: ^[a-f0-9]{64}$
+          - type: 'null'
+        device_id:
+          anyOf:
+          - type: string
+            minLength: 1
+          - type: 'null'
+        hardware_revision:
+          anyOf:
+          - type: string
+            minLength: 1
+          - type: 'null'
+        boot_id:
+          anyOf:
+          - type: string
+            minLength: 1
+          - type: 'null'
+        config_sha256:
+          anyOf:
+          - type: string
+            pattern: ^[a-f0-9]{64}$
+          - type: 'null'
+        test_profile:
+          anyOf:
+          - type: string
+            minLength: 1
+          - type: 'null'
+        criteria_revision:
+          anyOf:
+          - type: string
+            minLength: 1
+          - type: 'null'
+      required:
+      - repo_revision
+      - worktree_patch_sha256
+      - build_id
+      - firmware_sha256
+      - device_id
+      - hardware_revision
+      - boot_id
+      - config_sha256
+      - test_profile
+      - criteria_revision
+      additionalProperties: false
+    Actor:
+      type: object
+      properties:
+        kind:
+          type: string
+          enum:
+          - human
+          - agent
+          - system
+        id:
+          type: string
+          minLength: 1
+        display_name:
+          type: string
+          minLength: 1
+      required:
+      - kind
+      - id
+      - display_name
+      additionalProperties: false
+    EngineeringState:
+      type: object
+      properties:
+        implementation_status:
+          type: string
+          enum:
+          - planned
+          - building
+          - integrated
+        verification_status:
+          type: string
+          enum:
+          - unverified
+          - passed
+          - failed
+          - stale
+        human_review_status:
+          type: string
+          enum:
+          - unseen
+          - reviewed
+          - accepted
+          - changes_requested
+        agent_endorsed:
+          type: boolean
+      required:
+      - implementation_status
+      - verification_status
+      - human_review_status
+      - agent_endorsed
+      additionalProperties: false
+    SourceRef:
+      type: object
+      properties:
+        kind:
+          type: string
+          enum:
+          - git
+          - document
+          - blob
+          - url
+        locator:
+          type: string
+          minLength: 1
+        repo_revision:
+          anyOf:
+          - type: string
+            pattern: ^[a-f0-9]{40}$
+          - type: 'null'
+        line:
+          anyOf:
+          - type: integer
+            minimum: 1
+          - type: 'null'
+        end_line:
+          anyOf:
+          - type: integer
+            minimum: 1
+          - type: 'null'
+      required:
+      - kind
+      - locator
+      - repo_revision
+      - line
+      - end_line
+      additionalProperties: false
+    Capability:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        available:
+          type: boolean
+        reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+      required:
+      - name
+      - available
+      - reason
+      additionalProperties: false
+    Issue:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+        project_id:
+          type: string
+          minLength: 1
+        revision:
+          type: integer
+          minimum: 1
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        identifier:
+          type: string
+          minLength: 1
+        provider:
+          type: string
+          minLength: 1
+        provider_id:
+          type: string
+          minLength: 1
+        provider_version:
+          type: string
+          minLength: 1
+        title:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        native_state:
+          type: string
+          minLength: 1
+        display_column:
+          type: string
+          minLength: 1
+        assignee:
+          anyOf:
+          - type: string
+          - type: 'null'
+        labels:
+          type: array
+          items:
+            type: string
+        url:
+          type: string
+          format: uri
+        capabilities:
+          type: array
+          items:
+            $ref: '#/components/schemas/Capability'
+      required:
+      - id
+      - project_id
+      - revision
+      - created_at
+      - updated_at
+      - identifier
+      - provider
+      - provider_id
+      - provider_version
+      - title
+      - description
+      - native_state
+      - display_column
+      - assignee
+      - labels
+      - url
+      - capabilities
+      additionalProperties: false
+    Claim:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+        statement:
+          type: string
+          minLength: 1
+        status:
+          type: string
+          enum:
+          - hypothesis
+          - supported
+          - refuted
+          - inconclusive
+        supporting_evidence_ids:
+          type: array
+          items:
+            type: string
+        contradicting_evidence_ids:
+          type: array
+          items:
+            type: string
+        evidence_missing:
+          type: boolean
+        limitations:
+          type: array
+          items:
+            type: string
+      required:
+      - id
+      - statement
+      - status
+      - supporting_evidence_ids
+      - contradicting_evidence_ids
+      - evidence_missing
+      - limitations
+      additionalProperties: false
+    Experiment:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+        occurred_at:
+          type: string
+          format: date-time
+        question:
+          type: string
+          minLength: 1
+        procedure:
+          type: string
+          minLength: 1
+        observation:
+          type: string
+          minLength: 1
+        outcome:
+          type: string
+          enum:
+          - supports
+          - refutes
+          - inconclusive
+          - failed
+        evidence_ids:
+          type: array
+          items:
+            type: string
+        limitations:
+          type: array
+          items:
+            type: string
+      required:
+      - id
+      - occurred_at
+      - question
+      - procedure
+      - observation
+      - outcome
+      - evidence_ids
+      - limitations
+      additionalProperties: false
+    ProblemCase:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+        project_id:
+          type: string
+          minLength: 1
+        revision:
+          type: integer
+          minimum: 1
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        issue_ids:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        component_ids:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        symptom:
+          type: string
+          minLength: 1
+        claims:
+          type: array
+          items:
+            $ref: '#/components/schemas/Claim'
+        experiments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Experiment'
+        current_conclusion:
+          type: string
+        next_step:
+          type: string
+        state:
+          $ref: '#/components/schemas/EngineeringState'
+        limitations:
+          type: array
+          items:
+            type: string
+      required:
+      - id
+      - project_id
+      - revision
+      - created_at
+      - updated_at
+      - issue_ids
+      - component_ids
+      - symptom
+      - claims
+      - experiments
+      - current_conclusion
+      - next_step
+      - state
+      - limitations
+      additionalProperties: false
+    RawRange:
+      type: object
+      properties:
+        blob_sha256:
+          type: string
+          pattern: ^[a-f0-9]{64}$
+        start_byte:
+          type: integer
+          minimum: 0
+        end_byte_exclusive:
+          type: integer
+          minimum: 0
+        source_seq_start:
+          anyOf:
+          - type: integer
+            minimum: 0
+          - type: 'null'
+        source_seq_end:
+          anyOf:
+          - type: integer
+            minimum: 0
+          - type: 'null'
+      required:
+      - blob_sha256
+      - start_byte
+      - end_byte_exclusive
+      - source_seq_start
+      - source_seq_end
+      additionalProperties: false
+    Evidence:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+        project_id:
+          type: string
+          minLength: 1
+        revision:
+          type: integer
+          minimum: 1
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        source_kind:
+          type: string
+          enum:
+          - serial
+          - image
+          - dump
+          - scope
+          - logic_analyzer
+          - power
+          - host_test
+          - simulator
+          - board_test
+          - document
+          - code
+          - agent_report
+        title:
+          type: string
+          minLength: 1
+        raw:
+          type: array
+          items:
+            $ref: '#/components/schemas/RawRange'
+        source_refs:
+          type: array
+          items:
+            $ref: '#/components/schemas/SourceRef'
+        binding:
+          $ref: '#/components/schemas/Binding'
+        captured_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+        received_at:
+          type: string
+          format: date-time
+        capture_session_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+        derivation_of:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        limitations:
+          type: array
+          items:
+            type: string
+        supersedes:
+          anyOf:
+          - type: string
+          - type: 'null'
+        content_status:
+          type: string
+          enum:
+          - available
+          - missing
+          - corrupt
+        review_status:
+          type: string
+          enum:
+          - unseen
+          - reviewed
+          - accepted
+          - changes_requested
+      required:
+      - id
+      - project_id
+      - revision
+      - created_at
+      - updated_at
+      - source_kind
+      - title
+      - raw
+      - source_refs
+      - binding
+      - captured_at
+      - received_at
+      - capture_session_id
+      - derivation_of
+      - limitations
+      - supersedes
+      - content_status
+      - review_status
+      additionalProperties: false
+    Validation:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+        project_id:
+          type: string
+          minLength: 1
+        revision:
+          type: integer
+          minimum: 1
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        claim_id:
+          type: string
+          minLength: 1
+        evidence_ids:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        criteria:
+          type: string
+          minLength: 1
+        criteria_revision:
+          type: string
+          minLength: 1
+        binding:
+          $ref: '#/components/schemas/Binding'
+        result:
+          type: string
+          enum:
+          - unverified
+          - passed
+          - failed
+          - stale
+          - inconclusive
+        executed_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+        command_record_sha256:
+          anyOf:
+          - type: string
+            pattern: ^[a-f0-9]{64}$
+          - type: 'null'
+        limitations:
+          type: array
+          items:
+            type: string
+      required:
+      - id
+      - project_id
+      - revision
+      - created_at
+      - updated_at
+      - claim_id
+      - evidence_ids
+      - criteria
+      - criteria_revision
+      - binding
+      - result
+      - executed_at
+      - command_record_sha256
+      - limitations
+      additionalProperties: false
+    Option:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+        title:
+          type: string
+          minLength: 1
+        proposal:
+          type: string
+          minLength: 1
+        tradeoffs:
+          type: array
+          items:
+            type: string
+        evidence_ids:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        remaining_validation:
+          type: array
+          items:
+            type: string
+      required:
+      - id
+      - title
+      - proposal
+      - tradeoffs
+      - evidence_ids
+      - remaining_validation
+      additionalProperties: false
+    Decision:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+        project_id:
+          type: string
+          minLength: 1
+        revision:
+          type: integer
+          minimum: 1
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        issue_id:
+          type: string
+          minLength: 1
+        problem_case_ids:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        options:
+          type: array
+          items:
+            $ref: '#/components/schemas/Option'
+        status:
+          type: string
+          enum:
+          - draft
+          - adopted
+          - superseded
+        selected_option_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+        constraints:
+          type: array
+          items:
+            type: string
+        plan_revision:
+          type: string
+          minLength: 1
+        actor:
+          $ref: '#/components/schemas/Actor'
+        limitations:
+          type: array
+          items:
+            type: string
+        supersedes:
+          anyOf:
+          - type: string
+          - type: 'null'
+      required:
+      - id
+      - project_id
+      - revision
+      - created_at
+      - updated_at
+      - issue_id
+      - problem_case_ids
+      - options
+      - status
+      - selected_option_id
+      - constraints
+      - plan_revision
+      - actor
+      - limitations
+      - supersedes
+      additionalProperties: false
+    Review:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+        project_id:
+          type: string
+          minLength: 1
+        revision:
+          type: integer
+          minimum: 1
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        target_type:
+          type: string
+          enum:
+          - problem_case
+          - evidence
+          - validation
+          - decision
+          - architecture
+        target_id:
+          type: string
+          minLength: 1
+        target_revision:
+          type: integer
+          minimum: 1
+        verdict:
+          type: string
+          enum:
+          - comment
+          - reviewed
+          - accepted
+          - changes_requested
+          - request_evidence
+        body:
+          type: string
+          minLength: 1
+        actor:
+          $ref: '#/components/schemas/Actor'
+      required:
+      - id
+      - project_id
+      - revision
+      - created_at
+      - updated_at
+      - target_type
+      - target_id
+      - target_revision
+      - verdict
+      - body
+      - actor
+      additionalProperties: false
+    ReceiptStep:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        status:
+          type: string
+          enum:
+          - pending
+          - confirmed
+          - failed
+          - unknown
+          - not_applicable
+        observed_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+        detail:
+          type: string
+        source_ref:
+          anyOf:
+          - type: string
+          - type: 'null'
+      required:
+      - name
+      - status
+      - observed_at
+      - detail
+      - source_ref
+      additionalProperties: false
+    Operation:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+        project_id:
+          type: string
+          minLength: 1
+        revision:
+          type: integer
+          minimum: 1
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        issue_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+        action:
+          type: string
+          minLength: 1
+        idempotency_key:
+          type: string
+          minLength: 1
+        request_sha256:
+          type: string
+          pattern: ^[a-f0-9]{64}$
+        expected_revision:
+          anyOf:
+          - type: integer
+            minimum: 1
+          - type: 'null'
+        actor:
+          $ref: '#/components/schemas/Actor'
+        status:
+          type: string
+          enum:
+          - received
+          - applying
+          - applied
+          - failed
+          - conflict
+          - outcome_unknown
+          - reconciling
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReceiptStep'
+        result_entity_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+        error_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+      required:
+      - id
+      - project_id
+      - revision
+      - created_at
+      - updated_at
+      - issue_id
+      - action
+      - idempotency_key
+      - request_sha256
+      - expected_revision
+      - actor
+      - status
+      - steps
+      - result_entity_id
+      - error_code
+      additionalProperties: false
+    Lease:
+      type: object
+      properties:
+        resource_id:
+          type: string
+          minLength: 1
+        owner_run_id:
+          type: string
+          minLength: 1
+        generation:
+          type: integer
+          minimum: 1
+        expires_at:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum:
+          - active
+          - expired
+          - uncertain
+          - released
+      required:
+      - resource_id
+      - owner_run_id
+      - generation
+      - expires_at
+      - status
+      additionalProperties: false
+    Device:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+        project_id:
+          type: string
+          minLength: 1
+        revision:
+          type: integer
+          minimum: 1
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        display_name:
+          type: string
+          minLength: 1
+        adapter:
+          type: string
+          minLength: 1
+        host_id:
+          type: string
+          minLength: 1
+        hardware_revision:
+          anyOf:
+          - type: string
+          - type: 'null'
+        connection_status:
+          type: string
+          enum:
+          - unknown
+          - offline
+          - connecting
+          - online
+          - error
+        build_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+        firmware_sha256:
+          anyOf:
+          - type: string
+            pattern: ^[a-f0-9]{64}$
+          - type: 'null'
+        active_session_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+        lease:
+          anyOf:
+          - $ref: '#/components/schemas/Lease'
+          - type: 'null'
+        capabilities:
+          type: array
+          items:
+            $ref: '#/components/schemas/Capability'
+      required:
+      - id
+      - project_id
+      - revision
+      - created_at
+      - updated_at
+      - display_name
+      - adapter
+      - host_id
+      - hardware_revision
+      - connection_status
+      - build_id
+      - firmware_sha256
+      - active_session_id
+      - lease
+      - capabilities
+      additionalProperties: false
+    DeviceSession:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+        project_id:
+          type: string
+          minLength: 1
+        revision:
+          type: integer
+          minimum: 1
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        device_id:
+          type: string
+          minLength: 1
+        boot_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+        build_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+        firmware_sha256:
+          anyOf:
+          - type: string
+            pattern: ^[a-f0-9]{64}$
+          - type: 'null'
+        started_at:
+          type: string
+          format: date-time
+        ended_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+        binding_status:
+          type: string
+          enum:
+          - matched
+          - mismatched
+          - unknown
+        last_source_seq:
+          anyOf:
+          - type: integer
+            minimum: 0
+          - type: 'null'
+        gaps:
+          type: array
+          items:
+            type: object
+            properties:
+              from_seq:
+                anyOf:
+                - type: integer
+                  minimum: 0
+                - type: 'null'
+              to_seq:
+                anyOf:
+                - type: integer
+                  minimum: 0
+                - type: 'null'
+              reason:
+                type: string
+                minLength: 1
+              observed_at:
+                type: string
+                format: date-time
+            required:
+            - from_seq
+            - to_seq
+            - reason
+            - observed_at
+            additionalProperties: false
+      required:
+      - id
+      - project_id
+      - revision
+      - created_at
+      - updated_at
+      - device_id
+      - boot_id
+      - build_id
+      - firmware_sha256
+      - started_at
+      - ended_at
+      - binding_status
+      - last_source_seq
+      - gaps
+      additionalProperties: false
+    CheckResult:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+          - passed
+          - failed
+          - skipped
+          - not_run
+        receipt_sha256:
+          anyOf:
+          - type: string
+            pattern: ^[a-f0-9]{64}$
+          - type: 'null'
+        detail:
+          type: string
+      required:
+      - status
+      - receipt_sha256
+      - detail
+      additionalProperties: false
+    ArchitectureArtifact:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+        project_id:
+          type: string
+          minLength: 1
+        revision:
+          type: integer
+          minimum: 1
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        kind:
+          type: string
+          enum:
+          - source
+          - plan
+          - delta
+        generation_status:
+          type: string
+          enum:
+          - queued
+          - running
+          - succeeded
+          - failed
+        source_revision:
+          anyOf:
+          - type: string
+            pattern: ^[a-f0-9]{40}$
+          - type: 'null'
+        base_revision:
+          anyOf:
+          - type: string
+            pattern: ^[a-f0-9]{40}$
+          - type: 'null'
+        plan_revision:
+          anyOf:
+          - type: string
+          - type: 'null'
+        ir_sha256:
+          anyOf:
+          - type: string
+            pattern: ^[a-f0-9]{64}$
+          - type: 'null'
+        html_sha256:
+          anyOf:
+          - type: string
+            pattern: ^[a-f0-9]{64}$
+          - type: 'null'
+        manifest_sha256:
+          anyOf:
+          - type: string
+            pattern: ^[a-f0-9]{64}$
+          - type: 'null'
+        skill_commit:
+          type: string
+          pattern: ^[a-f0-9]{40}$
+        schema_check:
+          $ref: '#/components/schemas/CheckResult'
+        browser_check:
+          $ref: '#/components/schemas/CheckResult'
+        visual_review:
+          $ref: '#/components/schemas/CheckResult'
+        last_good_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+        stale:
+          type: boolean
+        limitations:
+          type: array
+          items:
+            type: string
+      required:
+      - id
+      - project_id
+      - revision
+      - created_at
+      - updated_at
+      - kind
+      - generation_status
+      - source_revision
+      - base_revision
+      - plan_revision
+      - ir_sha256
+      - html_sha256
+      - manifest_sha256
+      - skill_commit
+      - schema_check
+      - browser_check
+      - visual_review
+      - last_good_id
+      - stale
+      - limitations
+      additionalProperties: false
+    Event:
+      type: object
+      properties:
+        event_id:
+          type: string
+          minLength: 1
+        project_id:
+          type: string
+          minLength: 1
+        project_seq:
+          type: integer
+          minimum: 1
+        occurred_at:
+          type: string
+          format: date-time
+        recorded_at:
+          type: string
+          format: date-time
+        type:
+          type: string
+          enum:
+          - problem.updated
+          - evidence.registered
+          - validation.recorded
+          - decision.adopted
+          - review.recorded
+          - operation.updated
+          - device.session_changed
+          - architecture.published
+          - plan.loaded
+        entity_type:
+          type: string
+          minLength: 1
+        entity_id:
+          type: string
+          minLength: 1
+        entity_revision:
+          type: integer
+          minimum: 1
+        run_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+        actor:
+          $ref: '#/components/schemas/Actor'
+        payload:
+          type: object
+          properties:
+            plan_revision:
+              anyOf:
+              - type: string
+              - type: 'null'
+            decision_id:
+              anyOf:
+              - type: string
+              - type: 'null'
+            decision_sha256:
+              anyOf:
+              - type: string
+                pattern: ^[a-f0-9]{64}$
+              - type: 'null'
+            detail:
+              type: string
+          required:
+          - plan_revision
+          - decision_id
+          - decision_sha256
+          - detail
+          additionalProperties: false
+      required:
+      - event_id
+      - project_id
+      - project_seq
+      - occurred_at
+      - recorded_at
+      - type
+      - entity_type
+      - entity_id
+      - entity_revision
+      - run_id
+      - actor
+      - payload
+      additionalProperties: false
+    SourceHealth:
+      type: object
+      properties:
+        source:
+          type: string
+          minLength: 1
+        status:
+          type: string
+          enum:
+          - healthy
+          - degraded
+          - unavailable
+        last_success_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+        detail:
+          type: string
+      required:
+      - source
+      - status
+      - last_success_at
+      - detail
+      additionalProperties: false
+    Snapshot:
+      type: object
+      properties:
+        project_id:
+          type: string
+          minLength: 1
+        snapshot_seq:
+          type: integer
+          minimum: 0
+        generated_at:
+          type: string
+          format: date-time
+        tracker_fetched_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+        runtime_observed_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+        source_health:
+          type: array
+          items:
+            $ref: '#/components/schemas/SourceHealth'
+        issue_count:
+          type: integer
+          minimum: 0
+        running_count:
+          type: integer
+          minimum: 0
+        review_count:
+          type: integer
+          minimum: 0
+        paused_count:
+          type: integer
+          minimum: 0
+      required:
+      - project_id
+      - snapshot_seq
+      - generated_at
+      - tracker_fetched_at
+      - runtime_observed_at
+      - source_health
+      - issue_count
+      - running_count
+      - review_count
+      - paused_count
+      additionalProperties: false
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+          minLength: 1
+        message:
+          type: string
+          minLength: 1
+        retryable:
+          type: boolean
+        operation_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+        current_revision:
+          anyOf:
+          - type: integer
+            minimum: 1
+          - type: 'null'
+        details:
+          type: array
+          items:
+            type: string
+      required:
+      - code
+      - message
+      - retryable
+      - operation_id
+      - current_revision
+      - details
+      additionalProperties: false
+    BlobReceipt:
+      type: object
+      properties:
+        sha256:
+          type: string
+          pattern: ^[a-f0-9]{64}$
+        size_bytes:
+          type: integer
+          minimum: 0
+        media_type:
+          type: string
+          minLength: 1
+        created_at:
+          type: string
+          format: date-time
+      required:
+      - sha256
+      - size_bytes
+      - media_type
+      - created_at
+      additionalProperties: false
+    OperationRequest:
+      oneOf:
+      - type: object
+        properties:
+          project_id:
+            type: string
+            minLength: 1
+          idempotency_key:
+            type: string
+            minLength: 8
+            maxLength: 128
+          expected_revision:
+            anyOf:
+            - type: integer
+              minimum: 1
+            - type: 'null'
+          action:
+            const: create_issue
+          payload:
+            type: object
+            properties:
+              title:
+                type: string
+                minLength: 1
+              description:
+                type: string
+              native_state:
+                type: string
+                minLength: 1
+              assignee_id:
+                anyOf:
+                - type: string
+                - type: 'null'
+              label_ids:
+                type: array
+                items:
+                  type: string
+            required:
+            - title
+            - description
+            - native_state
+            - assignee_id
+            - label_ids
+            additionalProperties: false
+        required:
+        - project_id
+        - idempotency_key
+        - expected_revision
+        - action
+        - payload
+        additionalProperties: false
+      - type: object
+        properties:
+          project_id:
+            type: string
+            minLength: 1
+          idempotency_key:
+            type: string
+            minLength: 8
+            maxLength: 128
+          expected_revision:
+            anyOf:
+            - type: integer
+              minimum: 1
+            - type: 'null'
+          action:
+            const: change_issue_state
+          payload:
+            type: object
+            properties:
+              issue_id:
+                type: string
+                minLength: 1
+              provider_version:
+                type: string
+                minLength: 1
+              target_state:
+                type: string
+                minLength: 1
+            required:
+            - issue_id
+            - provider_version
+            - target_state
+            additionalProperties: false
+        required:
+        - project_id
+        - idempotency_key
+        - expected_revision
+        - action
+        - payload
+        additionalProperties: false
+      - type: object
+        properties:
+          project_id:
+            type: string
+            minLength: 1
+          idempotency_key:
+            type: string
+            minLength: 8
+            maxLength: 128
+          expected_revision:
+            anyOf:
+            - type: integer
+              minimum: 1
+            - type: 'null'
+          action:
+            const: pause_issue
+          payload:
+            type: object
+            properties:
+              issue_id:
+                type: string
+                minLength: 1
+              provider_version:
+                type: string
+                minLength: 1
+            required:
+            - issue_id
+            - provider_version
+            additionalProperties: false
+        required:
+        - project_id
+        - idempotency_key
+        - expected_revision
+        - action
+        - payload
+        additionalProperties: false
+      - type: object
+        properties:
+          project_id:
+            type: string
+            minLength: 1
+          idempotency_key:
+            type: string
+            minLength: 8
+            maxLength: 128
+          expected_revision:
+            anyOf:
+            - type: integer
+              minimum: 1
+            - type: 'null'
+          action:
+            const: resume_issue
+          payload:
+            type: object
+            properties:
+              issue_id:
+                type: string
+                minLength: 1
+              provider_version:
+                type: string
+                minLength: 1
+              target_state:
+                type: string
+                minLength: 1
+            required:
+            - issue_id
+            - provider_version
+            - target_state
+            additionalProperties: false
+        required:
+        - project_id
+        - idempotency_key
+        - expected_revision
+        - action
+        - payload
+        additionalProperties: false
+      - type: object
+        properties:
+          project_id:
+            type: string
+            minLength: 1
+          idempotency_key:
+            type: string
+            minLength: 8
+            maxLength: 128
+          expected_revision:
+            anyOf:
+            - type: integer
+              minimum: 1
+            - type: 'null'
+          action:
+            const: adopt_decision
+          payload:
+            type: object
+            properties:
+              issue_id:
+                type: string
+                minLength: 1
+              provider_version:
+                type: string
+                minLength: 1
+              decision_id:
+                type: string
+                minLength: 1
+              option_id:
+                type: string
+                minLength: 1
+              resume_after_apply:
+                type: boolean
+              resume_target_state:
+                anyOf:
+                - type: string
+                - type: 'null'
+            required:
+            - issue_id
+            - provider_version
+            - decision_id
+            - option_id
+            - resume_after_apply
+            - resume_target_state
+            additionalProperties: false
+        required:
+        - project_id
+        - idempotency_key
+        - expected_revision
+        - action
+        - payload
+        additionalProperties: false
+      - type: object
+        properties:
+          project_id:
+            type: string
+            minLength: 1
+          idempotency_key:
+            type: string
+            minLength: 8
+            maxLength: 128
+          expected_revision:
+            anyOf:
+            - type: integer
+              minimum: 1
+            - type: 'null'
+          action:
+            const: adjust_constraints
+          payload:
+            type: object
+            properties:
+              issue_id:
+                type: string
+                minLength: 1
+              provider_version:
+                type: string
+                minLength: 1
+              decision_id:
+                type: string
+                minLength: 1
+              constraints:
+                type: array
+                items:
+                  type: string
+                  minLength: 1
+              resume_after_apply:
+                type: boolean
+              resume_target_state:
+                anyOf:
+                - type: string
+                - type: 'null'
+            required:
+            - issue_id
+            - provider_version
+            - decision_id
+            - constraints
+            - resume_after_apply
+            - resume_target_state
+            additionalProperties: false
+        required:
+        - project_id
+        - idempotency_key
+        - expected_revision
+        - action
+        - payload
+        additionalProperties: false
+      - type: object
+        properties:
+          project_id:
+            type: string
+            minLength: 1
+          idempotency_key:
+            type: string
+            minLength: 8
+            maxLength: 128
+          expected_revision:
+            anyOf:
+            - type: integer
+              minimum: 1
+            - type: 'null'
+          action:
+            const: comment
+          payload:
+            type: object
+            properties:
+              issue_id:
+                type: string
+                minLength: 1
+              target_type:
+                type: string
+                minLength: 1
+              target_id:
+                type: string
+                minLength: 1
+              body:
+                type: string
+                minLength: 1
+            required:
+            - issue_id
+            - target_type
+            - target_id
+            - body
+            additionalProperties: false
+        required:
+        - project_id
+        - idempotency_key
+        - expected_revision
+        - action
+        - payload
+        additionalProperties: false
+      - type: object
+        properties:
+          project_id:
+            type: string
+            minLength: 1
+          idempotency_key:
+            type: string
+            minLength: 8
+            maxLength: 128
+          expected_revision:
+            anyOf:
+            - type: integer
+              minimum: 1
+            - type: 'null'
+          action:
+            const: review
+          payload:
+            type: object
+            properties:
+              issue_id:
+                type: string
+                minLength: 1
+              target_type:
+                type: string
+                enum:
+                - problem_case
+                - evidence
+                - validation
+                - decision
+                - architecture
+              target_id:
+                type: string
+                minLength: 1
+              verdict:
+                type: string
+                enum:
+                - reviewed
+                - accepted
+                - changes_requested
+              body:
+                type: string
+                minLength: 1
+            required:
+            - issue_id
+            - target_type
+            - target_id
+            - verdict
+            - body
+            additionalProperties: false
+        required:
+        - project_id
+        - idempotency_key
+        - expected_revision
+        - action
+        - payload
+        additionalProperties: false
+      - type: object
+        properties:
+          project_id:
+            type: string
+            minLength: 1
+          idempotency_key:
+            type: string
+            minLength: 8
+            maxLength: 128
+          expected_revision:
+            anyOf:
+            - type: integer
+              minimum: 1
+            - type: 'null'
+          action:
+            const: request_evidence
+          payload:
+            type: object
+            properties:
+              issue_id:
+                type: string
+                minLength: 1
+              target_type:
+                type: string
+                minLength: 1
+              target_id:
+                type: string
+                minLength: 1
+              question:
+                type: string
+                minLength: 1
+            required:
+            - issue_id
+            - target_type
+            - target_id
+            - question
+            additionalProperties: false
+        required:
+        - project_id
+        - idempotency_key
+        - expected_revision
+        - action
+        - payload
+        additionalProperties: false
+      - type: object
+        properties:
+          project_id:
+            type: string
+            minLength: 1
+          idempotency_key:
+            type: string
+            minLength: 8
+            maxLength: 128
+          expected_revision:
+            anyOf:
+            - type: integer
+              minimum: 1
+            - type: 'null'
+          action:
+            const: generate_architecture
+          payload:
+            type: object
+            properties:
+              issue_id:
+                anyOf:
+                - type: string
+                - type: 'null'
+              kind:
+                type: string
+                enum:
+                - source
+                - plan
+                - delta
+              source_revision:
+                anyOf:
+                - type: string
+                  pattern: ^[a-f0-9]{40}$
+                - type: 'null'
+              base_revision:
+                anyOf:
+                - type: string
+                  pattern: ^[a-f0-9]{40}$
+                - type: 'null'
+              plan_revision:
+                anyOf:
+                - type: string
+                - type: 'null'
+            required:
+            - issue_id
+            - kind
+            - source_revision
+            - base_revision
+            - plan_revision
+            additionalProperties: false
+        required:
+        - project_id
+        - idempotency_key
+        - expected_revision
+        - action
+        - payload
+        additionalProperties: false
+      - type: object
+        properties:
+          project_id:
+            type: string
+            minLength: 1
+          idempotency_key:
+            type: string
+            minLength: 8
+            maxLength: 128
+          expected_revision:
+            anyOf:
+            - type: integer
+              minimum: 1
+            - type: 'null'
+          action:
+            const: register_device
+          payload:
+            type: object
+            properties:
+              display_name:
+                type: string
+                minLength: 1
+              adapter:
+                type: string
+                minLength: 1
+              host_id:
+                type: string
+                minLength: 1
+              configured_device_key:
+                type: string
+                minLength: 1
+            required:
+            - display_name
+            - adapter
+            - host_id
+            - configured_device_key
+            additionalProperties: false
+        required:
+        - project_id
+        - idempotency_key
+        - expected_revision
+        - action
+        - payload
+        additionalProperties: false
+      - type: object
+        properties:
+          project_id:
+            type: string
+            minLength: 1
+          idempotency_key:
+            type: string
+            minLength: 8
+            maxLength: 128
+          expected_revision:
+            anyOf:
+            - type: integer
+              minimum: 1
+            - type: 'null'
+          action:
+            const: connect_device
+          payload:
+            type: object
+            properties:
+              device_id:
+                type: string
+                minLength: 1
+            required:
+            - device_id
+            additionalProperties: false
+        required:
+        - project_id
+        - idempotency_key
+        - expected_revision
+        - action
+        - payload
+        additionalProperties: false
+      - type: object
+        properties:
+          project_id:
+            type: string
+            minLength: 1
+          idempotency_key:
+            type: string
+            minLength: 8
+            maxLength: 128
+          expected_revision:
+            anyOf:
+            - type: integer
+              minimum: 1
+            - type: 'null'
+          action:
+            const: disconnect_device
+          payload:
+            type: object
+            properties:
+              device_id:
+                type: string
+                minLength: 1
+            required:
+            - device_id
+            additionalProperties: false
+        required:
+        - project_id
+        - idempotency_key
+        - expected_revision
+        - action
+        - payload
+        additionalProperties: false
+      - type: object
+        properties:
+          project_id:
+            type: string
+            minLength: 1
+          idempotency_key:
+            type: string
+            minLength: 8
+            maxLength: 128
+          expected_revision:
+            anyOf:
+            - type: integer
+              minimum: 1
+            - type: 'null'
+          action:
+            const: capture_image
+          payload:
+            type: object
+            properties:
+              device_id:
+                type: string
+                minLength: 1
+              source_key:
+                type: string
+                minLength: 1
+              session_id:
+                anyOf:
+                - type: string
+                - type: 'null'
+            required:
+            - device_id
+            - source_key
+            - session_id
+            additionalProperties: false
+        required:
+        - project_id
+        - idempotency_key
+        - expected_revision
+        - action
+        - payload
+        additionalProperties: false
+      - type: object
+        properties:
+          project_id:
+            type: string
+            minLength: 1
+          idempotency_key:
+            type: string
+            minLength: 8
+            maxLength: 128
+          expected_revision:
+            anyOf:
+            - type: integer
+              minimum: 1
+            - type: 'null'
+          action:
+            const: run_device_action
+          payload:
+            type: object
+            properties:
+              device_id:
+                type: string
+                minLength: 1
+              tool_id:
+                type: string
+                minLength: 1
+              owner_run_id:
+                type: string
+                minLength: 1
+              lease_generation:
+                type: integer
+                minimum: 1
+            required:
+            - device_id
+            - tool_id
+            - owner_run_id
+            - lease_generation
+            additionalProperties: false
+        required:
+        - project_id
+        - idempotency_key
+        - expected_revision
+        - action
+        - payload
+        additionalProperties: false
+      - type: object
+        properties:
+          project_id:
+            type: string
+            minLength: 1
+          idempotency_key:
+            type: string
+            minLength: 8
+            maxLength: 128
+          expected_revision:
+            anyOf:
+            - type: integer
+              minimum: 1
+            - type: 'null'
+          action:
+            const: decode_dump
+          payload:
+            type: object
+            properties:
+              device_id:
+                type: string
+                minLength: 1
+              evidence_id:
+                type: string
+                minLength: 1
+              decoder_key:
+                type: string
+                minLength: 1
+              elf_blob_sha256:
+                type: string
+                pattern: ^[a-f0-9]{64}$
+            required:
+            - device_id
+            - evidence_id
+            - decoder_key
+            - elf_blob_sha256
+            additionalProperties: false
+        required:
+        - project_id
+        - idempotency_key
+        - expected_revision
+        - action
+        - payload
+        additionalProperties: false
+      - type: object
+        properties:
+          project_id:
+            type: string
+            minLength: 1
+          idempotency_key:
+            type: string
+            minLength: 8
+            maxLength: 128
+          expected_revision:
+            anyOf:
+            - type: integer
+              minimum: 1
+            - type: 'null'
+          action:
+            const: reconcile_operation
+          payload:
+            type: object
+            properties:
+              operation_id:
+                type: string
+                minLength: 1
+            required:
+            - operation_id
+            additionalProperties: false
+        required:
+        - project_id
+        - idempotency_key
+        - expected_revision
+        - action
+        - payload
+        additionalProperties: false
+      - type: object
+        properties:
+          project_id:
+            type: string
+            minLength: 1
+          idempotency_key:
+            type: string
+            minLength: 8
+            maxLength: 128
+          expected_revision:
+            type: 'null'
+          action:
+            const: register_evidence
+          payload:
+            type: object
+            properties:
+              issue_id:
+                anyOf:
+                - type: string
+                - type: 'null'
+              evidence:
+                type: object
+                properties:
+                  source_kind:
+                    type: string
+                    enum:
+                    - serial
+                    - image
+                    - dump
+                    - scope
+                    - logic_analyzer
+                    - power
+                    - host_test
+                    - simulator
+                    - board_test
+                    - document
+                    - code
+                    - agent_report
+                  title:
+                    type: string
+                    minLength: 1
+                  raw:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RawRange'
+                  source_refs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SourceRef'
+                  binding:
+                    $ref: '#/components/schemas/Binding'
+                  captured_at:
+                    anyOf:
+                    - type: string
+                      format: date-time
+                    - type: 'null'
+                  received_at:
+                    type: string
+                    format: date-time
+                  capture_session_id:
+                    anyOf:
+                    - type: string
+                    - type: 'null'
+                  derivation_of:
+                    type: array
+                    items:
+                      type: string
+                      minLength: 1
+                  limitations:
+                    type: array
+                    items:
+                      type: string
+                  supersedes:
+                    anyOf:
+                    - type: string
+                    - type: 'null'
+                  content_status:
+                    type: string
+                    enum:
+                    - available
+                    - missing
+                    - corrupt
+                required:
+                - source_kind
+                - title
+                - raw
+                - source_refs
+                - binding
+                - captured_at
+                - received_at
+                - capture_session_id
+                - derivation_of
+                - limitations
+                - supersedes
+                - content_status
+                additionalProperties: false
+            required:
+            - issue_id
+            - evidence
+            additionalProperties: false
+        required:
+        - project_id
+        - idempotency_key
+        - expected_revision
+        - action
+        - payload
+        additionalProperties: false
+      - type: object
+        properties:
+          project_id:
+            type: string
+            minLength: 1
+          idempotency_key:
+            type: string
+            minLength: 8
+            maxLength: 128
+          expected_revision:
+            type: integer
+            minimum: 1
+          action:
+            const: acquire_device_lease
+          payload:
+            type: object
+            properties:
+              device_id:
+                type: string
+                minLength: 1
+              owner_run_id:
+                type: string
+                minLength: 1
+              ttl_seconds:
+                type: integer
+                minimum: 5
+                maximum: 300
+            required:
+            - device_id
+            - owner_run_id
+            - ttl_seconds
+            additionalProperties: false
+        required:
+        - project_id
+        - idempotency_key
+        - expected_revision
+        - action
+        - payload
+        additionalProperties: false
+      - type: object
+        properties:
+          project_id:
+            type: string
+            minLength: 1
+          idempotency_key:
+            type: string
+            minLength: 8
+            maxLength: 128
+          expected_revision:
+            type: integer
+            minimum: 1
+          action:
+            const: release_device_lease
+          payload:
+            type: object
+            properties:
+              device_id:
+                type: string
+                minLength: 1
+              owner_run_id:
+                type: string
+                minLength: 1
+              lease_generation:
+                type: integer
+                minimum: 1
+            required:
+            - device_id
+            - owner_run_id
+            - lease_generation
+            additionalProperties: false
+        required:
+        - project_id
+        - idempotency_key
+        - expected_revision
+        - action
+        - payload
+        additionalProperties: false
+      - type: object
+        properties:
+          project_id:
+            type: string
+            minLength: 1
+          idempotency_key:
+            type: string
+            minLength: 8
+            maxLength: 128
+          expected_revision:
+            type: integer
+            minimum: 1
+          action:
+            const: set_image_source
+          payload:
+            type: object
+            properties:
+              device_id:
+                type: string
+                minLength: 1
+              source_key:
+                anyOf:
+                - type: string
+                  minLength: 1
+                - type: 'null'
+            required:
+            - device_id
+            - source_key
+            additionalProperties: false
+        required:
+        - project_id
+        - idempotency_key
+        - expected_revision
+        - action
+        - payload
+        additionalProperties: false
+    IssuePage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Issue'
+        next_cursor:
+          anyOf:
+          - *id002
+          - type: 'null'
+        snapshot_seq: *id016
+      required:
+      - items
+      - next_cursor
+      - snapshot_seq
+      additionalProperties: false
+    ProblemCasePage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProblemCase'
+        next_cursor:
+          anyOf:
+          - *id002
+          - type: 'null'
+        snapshot_seq: *id016
+      required:
+      - items
+      - next_cursor
+      - snapshot_seq
+      additionalProperties: false
+    EvidencePage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Evidence'
+        next_cursor:
+          anyOf:
+          - *id002
+          - type: 'null'
+        snapshot_seq: *id016
+      required:
+      - items
+      - next_cursor
+      - snapshot_seq
+      additionalProperties: false
+    ValidationPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Validation'
+        next_cursor:
+          anyOf:
+          - *id002
+          - type: 'null'
+        snapshot_seq: *id016
+      required:
+      - items
+      - next_cursor
+      - snapshot_seq
+      additionalProperties: false
+    DecisionPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Decision'
+        next_cursor:
+          anyOf:
+          - *id002
+          - type: 'null'
+        snapshot_seq: *id016
+      required:
+      - items
+      - next_cursor
+      - snapshot_seq
+      additionalProperties: false
+    ReviewPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Review'
+        next_cursor:
+          anyOf:
+          - *id002
+          - type: 'null'
+        snapshot_seq: *id016
+      required:
+      - items
+      - next_cursor
+      - snapshot_seq
+      additionalProperties: false
+    OperationPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Operation'
+        next_cursor:
+          anyOf:
+          - *id002
+          - type: 'null'
+        snapshot_seq: *id016
+      required:
+      - items
+      - next_cursor
+      - snapshot_seq
+      additionalProperties: false
+    DevicePage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Device'
+        next_cursor:
+          anyOf:
+          - *id002
+          - type: 'null'
+        snapshot_seq: *id016
+      required:
+      - items
+      - next_cursor
+      - snapshot_seq
+      additionalProperties: false
+    DeviceSessionPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/DeviceSession'
+        next_cursor:
+          anyOf:
+          - *id002
+          - type: 'null'
+        snapshot_seq: *id016
+      required:
+      - items
+      - next_cursor
+      - snapshot_seq
+      additionalProperties: false
+    ArchitectureArtifactPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ArchitectureArtifact'
+        next_cursor:
+          anyOf:
+          - *id002
+          - type: 'null'
+        snapshot_seq: *id016
+      required:
+      - items
+      - next_cursor
+      - snapshot_seq
+      additionalProperties: false
+    EventPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Event'
+        next_cursor:
+          anyOf:
+          - *id002
+          - type: 'null'
+        snapshot_seq: *id016
+      required:
+      - items
+      - next_cursor
+      - snapshot_seq
+      additionalProperties: false
+    CapabilityPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Capability'
+        next_cursor:
+          anyOf:
+          - *id002
+          - type: 'null'
+        snapshot_seq: *id016
+      required:
+      - items
+      - next_cursor
+      - snapshot_seq
+      additionalProperties: false
+    SerialRow:
+      type: object
+      properties:
+        session_id: *id012
+        source_seq: *id016
+        received_at:
+          type: string
+          format: date-time
+        display_text: *id002
+        invalid_utf8: &id018
+          type: boolean
+        raw_blob_sha256:
+          anyOf:
+          - *id017
+          - type: 'null'
+        raw_start_byte:
+          anyOf:
+          - *id016
+          - type: 'null'
+        raw_end_byte_exclusive:
+          anyOf:
+          - *id016
+          - type: 'null'
+        is_gap: *id018
+      required:
+      - session_id
+      - source_seq
+      - received_at
+      - display_text
+      - invalid_utf8
+      - raw_blob_sha256
+      - raw_start_byte
+      - raw_end_byte_exclusive
+      - is_gap
+      additionalProperties: false
+    SerialRowPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SerialRow'
+        next_cursor:
+          anyOf:
+          - *id002
+          - type: 'null'
+        snapshot_seq: *id016
+      required:
+      - items
+      - next_cursor
+      - snapshot_seq
+      additionalProperties: false
+    PlanReference:
+      type: object
+      properties:
+        decision_id:
+          anyOf:
+          - type: string
+            minLength: 1
+          - type: 'null'
+        decision_revision:
+          anyOf:
+          - type: integer
+            minimum: 1
+          - type: 'null'
+        plan_revision:
+          type: string
+          minLength: 1
+        plan_sha256:
+          type: string
+          pattern: ^[a-f0-9]{64}$
+        plan_blob_sha256:
+          anyOf:
+          - type: string
+            pattern: ^[a-f0-9]{64}$
+          - type: 'null'
+        workpad_url:
+          type: string
+          minLength: 1
+        observed_at:
+          type: string
+          format: date-time
+      required:
+      - decision_id
+      - decision_revision
+      - plan_revision
+      - plan_sha256
+      - plan_blob_sha256
+      - workpad_url
+      - observed_at
+      additionalProperties: false
+    IssueContext:
+      type: object
+      properties:
+        issue_id:
+          type: string
+          minLength: 1
+        current_plan:
+          anyOf:
+          - $ref: '#/components/schemas/PlanReference'
+          - type: 'null'
+        problem_case_ids:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        evidence_ids:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        decision_ids:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        runtime_snapshot_url:
+          type: string
+          minLength: 1
+        provider_workpad_url:
+          anyOf:
+          - type: string
+            minLength: 1
+          - type: 'null'
+        fetched_at:
+          type: string
+          format: date-time
+      required:
+      - issue_id
+      - current_plan
+      - problem_case_ids
+      - evidence_ids
+      - decision_ids
+      - runtime_snapshot_url
+      - provider_workpad_url
+      - fetched_at
+      additionalProperties: false
+    ChangesView:
+      type: object
+      properties:
+        issue_id:
+          type: string
+          minLength: 1
+        status:
+          type: string
+          enum:
+          - available
+          - unavailable
+          - stale
+        base_revision:
+          anyOf:
+          - type: string
+            pattern: ^[a-f0-9]{40}$
+          - type: 'null'
+        head_revision:
+          anyOf:
+          - type: string
+            pattern: ^[a-f0-9]{40}$
+          - type: 'null'
+        worktree_patch_sha256:
+          anyOf:
+          - type: string
+            pattern: ^[a-f0-9]{64}$
+          - type: 'null'
+        diff_blob_sha256:
+          anyOf:
+          - type: string
+            pattern: ^[a-f0-9]{64}$
+          - type: 'null'
+        changed_paths:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        limitations:
+          type: array
+          items:
+            type: string
+      required:
+      - issue_id
+      - status
+      - base_revision
+      - head_revision
+      - worktree_patch_sha256
+      - diff_blob_sha256
+      - changed_paths
+      - limitations
+      additionalProperties: false
+    BuildRecord:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+        project_id:
+          type: string
+          minLength: 1
+        build_id:
+          type: string
+          minLength: 1
+        repo_revision:
+          anyOf:
+          - type: string
+            pattern: ^[a-f0-9]{40}$
+          - type: 'null'
+        firmware_blob_sha256:
+          anyOf:
+          - type: string
+            pattern: ^[a-f0-9]{64}$
+          - type: 'null'
+        elf_blob_sha256:
+          anyOf:
+          - type: string
+            pattern: ^[a-f0-9]{64}$
+          - type: 'null'
+        config_sha256:
+          anyOf:
+          - type: string
+            pattern: ^[a-f0-9]{64}$
+          - type: 'null'
+        toolchain:
+          anyOf:
+          - type: string
+            minLength: 1
+          - type: 'null'
+        built_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+        source_refs:
+          type: array
+          items:
+            $ref: '#/components/schemas/SourceRef'
+        binding_status:
+          type: string
+          enum:
+          - matched
+          - mismatched
+          - unknown
+        limitations:
+          type: array
+          items:
+            type: string
+      required:
+      - id
+      - project_id
+      - build_id
+      - repo_revision
+      - firmware_blob_sha256
+      - elf_blob_sha256
+      - config_sha256
+      - toolchain
+      - built_at
+      - source_refs
+      - binding_status
+      - limitations
+      additionalProperties: false
+    BuildRecordPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/BuildRecord'
+        next_cursor:
+          anyOf:
+          - type: string
+          - type: 'null'
+        snapshot_seq:
+          type: integer
+          minimum: 0
+      required:
+      - items
+      - next_cursor
+      - snapshot_seq
+      additionalProperties: false
+    ProviderMetadata:
+      type: object
+      properties:
+        project_id:
+          type: string
+          minLength: 1
+        provider:
+          type: string
+          minLength: 1
+        provider_project_id:
+          type: string
+          minLength: 1
+        states:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                minLength: 1
+              name:
+                type: string
+                minLength: 1
+              display_column:
+                type: string
+                minLength: 1
+              active:
+                type: boolean
+              terminal:
+                type: boolean
+            required:
+            - id
+            - name
+            - display_column
+            - active
+            - terminal
+            additionalProperties: false
+        assignees:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                minLength: 1
+              name:
+                type: string
+                minLength: 1
+            required:
+            - id
+            - name
+            additionalProperties: false
+        labels:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                minLength: 1
+              name:
+                type: string
+                minLength: 1
+            required:
+            - id
+            - name
+            additionalProperties: false
+        capabilities:
+          type: array
+          items:
+            $ref: '#/components/schemas/Capability'
+        fetched_at:
+          type: string
+          format: date-time
+        stale:
+          type: boolean
+      required:
+      - project_id
+      - provider
+      - provider_project_id
+      - states
+      - assignees
+      - labels
+      - capabilities
+      - fetched_at
+      - stale
+      additionalProperties: false
+    DeviceObservations:
+      type: object
+      properties:
+        device_id:
+          type: string
+          minLength: 1
+        configured_image_sources:
+          type: array
+          items:
+            type: object
+            properties:
+              key:
+                type: string
+                minLength: 1
+              label:
+                type: string
+                minLength: 1
+              available:
+                type: boolean
+            required:
+            - key
+            - label
+            - available
+            additionalProperties: false
+        selected_image_source:
+          anyOf:
+          - type: string
+            minLength: 1
+          - type: 'null'
+        image_status:
+          type: string
+          enum:
+          - unconfigured
+          - disconnected
+          - connecting
+          - connected
+          - error
+        latest_image_evidence_id:
+          anyOf:
+          - type: string
+            minLength: 1
+          - type: 'null'
+        fault_evidence_ids:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        has_current_session_fault_record:
+          type: boolean
+        limitations:
+          type: array
+          items:
+            type: string
+      required:
+      - device_id
+      - configured_image_sources
+      - selected_image_source
+      - image_status
+      - latest_image_evidence_id
+      - fault_evidence_ids
+      - has_current_session_fault_record
+      - limitations
+      additionalProperties: false

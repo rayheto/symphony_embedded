@@ -1,0 +1,221 @@
+{
+  "tests": [
+    {
+      "id": "TC01",
+      "requirements": [
+        "R01"
+      ],
+      "title": "原核心一致性",
+      "status": "not_run"
+    },
+    {
+      "id": "TC02",
+      "requirements": [
+        "R01",
+        "R09",
+        "R11"
+      ],
+      "title": "配置与reload",
+      "status": "not_run"
+    },
+    {
+      "id": "TC03",
+      "requirements": [
+        "R02"
+      ],
+      "title": "真实Issue闭环",
+      "status": "not_run"
+    },
+    {
+      "id": "TC04",
+      "requirements": [
+        "R03",
+        "R04"
+      ],
+      "title": "调查与失败尝试",
+      "status": "not_run"
+    },
+    {
+      "id": "TC05",
+      "requirements": [
+        "R04",
+        "R11"
+      ],
+      "title": "不可变证据与适用范围",
+      "status": "not_run"
+    },
+    {
+      "id": "TC06",
+      "requirements": [
+        "R03",
+        "R05"
+      ],
+      "title": "Agent工具与单workpad",
+      "status": "not_run"
+    },
+    {
+      "id": "TC07",
+      "requirements": [
+        "R05",
+        "R11"
+      ],
+      "title": "暂停与恢复",
+      "status": "not_run"
+    },
+    {
+      "id": "TC08",
+      "requirements": [
+        "R05",
+        "R11"
+      ],
+      "title": "采用方案完整回执",
+      "status": "not_run"
+    },
+    {
+      "id": "TC09",
+      "requirements": [
+        "R05"
+      ],
+      "title": "补证据与人的方向",
+      "status": "not_run"
+    },
+    {
+      "id": "TC10",
+      "requirements": [
+        "R06"
+      ],
+      "title": "具体Archify源码图",
+      "status": "not_run"
+    },
+    {
+      "id": "TC11",
+      "requirements": [
+        "R06"
+      ],
+      "title": "架构比较与失败恢复",
+      "status": "not_run"
+    },
+    {
+      "id": "TC12",
+      "requirements": [
+        "R07",
+        "R11"
+      ],
+      "title": "串口PTY可靠性",
+      "status": "not_run"
+    },
+    {
+      "id": "TC13",
+      "requirements": [
+        "R07",
+        "R12"
+      ],
+      "title": "真实板设备链",
+      "status": "not_run"
+    },
+    {
+      "id": "TC14",
+      "requirements": [
+        "R08"
+      ],
+      "title": "图像与dump",
+      "status": "not_run"
+    },
+    {
+      "id": "TC15",
+      "requirements": [
+        "R04",
+        "R06",
+        "R07"
+      ],
+      "title": "权限与资源隔离",
+      "status": "not_run"
+    },
+    {
+      "id": "TC16",
+      "requirements": [
+        "R11"
+      ],
+      "title": "Store故障与重启",
+      "status": "not_run"
+    },
+    {
+      "id": "TC17",
+      "requirements": [
+        "R10"
+      ],
+      "title": "四页视觉基线",
+      "status": "not_run"
+    },
+    {
+      "id": "TC18",
+      "requirements": [
+        "R10",
+        "R11"
+      ],
+      "title": "页面全状态与键盘",
+      "status": "not_run"
+    },
+    {
+      "id": "TC19",
+      "requirements": [
+        "R10",
+        "R12"
+      ],
+      "title": "性能与理解",
+      "status": "not_run"
+    },
+    {
+      "id": "TC20",
+      "requirements": [
+        "R09"
+      ],
+      "title": "领域边界",
+      "status": "not_run"
+    },
+    {
+      "id": "TC21",
+      "requirements": [
+        "R11"
+      ],
+      "title": "事件恢复与缓存",
+      "status": "not_run"
+    },
+    {
+      "id": "TC22",
+      "requirements": [
+        "R05",
+        "R07"
+      ],
+      "title": "物理动作与软件暂停",
+      "status": "not_run"
+    },
+    {
+      "id": "TC23",
+      "requirements": [
+        "R12"
+      ],
+      "title": "干净环境与备份",
+      "status": "not_run"
+    },
+    {
+      "id": "TC24",
+      "requirements": [
+        "R01",
+        "R02",
+        "R03",
+        "R04",
+        "R05",
+        "R06",
+        "R07",
+        "R08",
+        "R09",
+        "R10",
+        "R11",
+        "R12"
+      ],
+      "title": "全链发布",
+      "status": "not_run"
+    }
+  ]
+}

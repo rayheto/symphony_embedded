@@ -1,0 +1,647 @@
+{
+  "version": "1.0",
+  "status": "planned",
+  "owner_note": "Responsibility roles, not mandatory subagents. Paths relative to implementation repository. Public entrypoint edits coordinated by integration owner.",
+  "tasks": [
+    {
+      "id": "T01",
+      "milestone": "M0",
+      "title": "冻结基线与core回归",
+      "owner": "integration",
+      "depends_on": [],
+      "requirements": [
+        "R01",
+        "R12"
+      ],
+      "acceptance_tests": [
+        "TC01"
+      ],
+      "allowed_paths": [
+        "elixir/",
+        "SPEC.md",
+        ".github/workflows/",
+        "docs/implementation/"
+      ],
+      "status": "planned",
+      "deliverable": "可运行纵向切片、变更源码revision、实际测试/证据及剩余限制",
+      "required_reading": [
+        "AGENTS.md",
+        "docs/ARCHITECTURE.md",
+        "docs/STATE_AND_CONSISTENCY.md",
+        "docs/ACCEPTANCE.md",
+        "docs/GIT_WORKFLOW.md"
+      ],
+      "gate": "关联TC适用部分通过；真实环境缺失标blocked，不宣称阶段完整",
+      "git_deliverable": "接入提交标题/range/PR标题检查器与原hook链/CI；记录实际base/branch、保留原full gates"
+    },
+    {
+      "id": "T02",
+      "milestone": "M0",
+      "title": "登记真实环境与domain/provider能力",
+      "owner": "integration",
+      "depends_on": [
+        "T01"
+      ],
+      "requirements": [
+        "R02",
+        "R07",
+        "R09",
+        "R12"
+      ],
+      "acceptance_tests": [
+        "TC02",
+        "TC20"
+      ],
+      "allowed_paths": [
+        "elixir/WORKFLOW.md",
+        "docs/environment/",
+        "config/",
+        ".github/workflows/",
+        "docs/implementation/"
+      ],
+      "status": "planned",
+      "deliverable": "可运行纵向切片、变更源码revision、实际测试/证据及剩余限制",
+      "required_reading": [
+        "AGENTS.md",
+        "docs/ARCHITECTURE.md",
+        "docs/STATE_AND_CONSISTENCY.md",
+        "docs/ACCEPTANCE.md",
+        "docs/GIT_WORKFLOW.md"
+      ],
+      "gate": "关联TC适用部分通过；真实环境缺失标blocked，不宣称阶段完整",
+      "git_deliverable": "接入提交标题/range/PR标题检查器与原hook链/CI；记录实际base/branch、保留原full gates"
+    },
+    {
+      "id": "T03",
+      "milestone": "M1",
+      "title": "工程Store与快照Query",
+      "owner": "backend",
+      "depends_on": [
+        "T01"
+      ],
+      "requirements": [
+        "R04",
+        "R11"
+      ],
+      "acceptance_tests": [
+        "TC05",
+        "TC16",
+        "TC21"
+      ],
+      "allowed_paths": [
+        "elixir/lib/symphony_elixir/experience/"
+      ],
+      "status": "planned",
+      "deliverable": "可运行纵向切片、变更源码revision、实际测试/证据及剩余限制",
+      "required_reading": [
+        "AGENTS.md",
+        "docs/ARCHITECTURE.md",
+        "docs/STATE_AND_CONSISTENCY.md",
+        "docs/ACCEPTANCE.md",
+        "docs/GIT_WORKFLOW.md"
+      ],
+      "gate": "关联TC适用部分通过；真实环境缺失标blocked，不宣称阶段完整"
+    },
+    {
+      "id": "T04",
+      "milestone": "M1",
+      "title": "Linear WorkbenchAdapter与操作基础",
+      "owner": "backend",
+      "depends_on": [
+        "T02",
+        "T03"
+      ],
+      "requirements": [
+        "R02",
+        "R05"
+      ],
+      "acceptance_tests": [
+        "TC03",
+        "TC07"
+      ],
+      "allowed_paths": [
+        "elixir/lib/symphony_elixir/linear/workbench_adapter.ex",
+        "elixir/lib/symphony_elixir/experience/operations.ex"
+      ],
+      "status": "planned",
+      "deliverable": "可运行纵向切片、变更源码revision、实际测试/证据及剩余限制",
+      "required_reading": [
+        "AGENTS.md",
+        "docs/ARCHITECTURE.md",
+        "docs/STATE_AND_CONSISTENCY.md",
+        "docs/ACCEPTANCE.md",
+        "docs/GIT_WORKFLOW.md"
+      ],
+      "gate": "关联TC适用部分通过；真实环境缺失标blocked，不宣称阶段完整"
+    },
+    {
+      "id": "T05",
+      "milestone": "M1",
+      "title": "双行壳、看板/列表、真实创建和详情",
+      "owner": "frontend",
+      "depends_on": [
+        "T04"
+      ],
+      "requirements": [
+        "R02",
+        "R10"
+      ],
+      "acceptance_tests": [
+        "TC03",
+        "TC17",
+        "TC18"
+      ],
+      "allowed_paths": [
+        "elixir/lib/symphony_elixir_web/live/workbench/",
+        "elixir/priv/static/"
+      ],
+      "status": "planned",
+      "deliverable": "可运行纵向切片、变更源码revision、实际测试/证据及剩余限制",
+      "required_reading": [
+        "AGENTS.md",
+        "docs/ARCHITECTURE.md",
+        "docs/STATE_AND_CONSISTENCY.md",
+        "docs/ACCEPTANCE.md",
+        "design/README.md",
+        "docs/VISUAL_SPEC.md",
+        "docs/DESIGN_UPDATE_SOFT_GLASS.md",
+        "docs/GIT_WORKFLOW.md"
+      ],
+      "gate": "关联TC适用部分通过；真实环境缺失标blocked，不宣称阶段完整",
+      "visual_baseline": "Symphony Soft Glass v1.0"
+    },
+    {
+      "id": "T06",
+      "milestone": "M2",
+      "title": "工程工具、原件持久化、问题与验证实体",
+      "owner": "backend",
+      "depends_on": [
+        "T03",
+        "T04"
+      ],
+      "requirements": [
+        "R03",
+        "R04"
+      ],
+      "acceptance_tests": [
+        "TC04",
+        "TC05",
+        "TC06"
+      ],
+      "allowed_paths": [
+        "elixir/lib/symphony_elixir/experience/agent_tools.ex",
+        "elixir/lib/symphony_elixir/experience/"
+      ],
+      "status": "planned",
+      "deliverable": "可运行纵向切片、变更源码revision、实际测试/证据及剩余限制",
+      "required_reading": [
+        "AGENTS.md",
+        "docs/ARCHITECTURE.md",
+        "docs/STATE_AND_CONSISTENCY.md",
+        "docs/ACCEPTANCE.md",
+        "docs/GIT_WORKFLOW.md"
+      ],
+      "gate": "关联TC适用部分通过；真实环境缺失标blocked，不宣称阶段完整"
+    },
+    {
+      "id": "T07",
+      "milestone": "M2",
+      "title": "调查/证据页面与原始材料穿透",
+      "owner": "frontend",
+      "depends_on": [
+        "T05",
+        "T06"
+      ],
+      "requirements": [
+        "R03",
+        "R04",
+        "R10"
+      ],
+      "acceptance_tests": [
+        "TC04",
+        "TC05",
+        "TC18"
+      ],
+      "allowed_paths": [
+        "elixir/lib/symphony_elixir_web/live/workbench/issue_detail_live.ex"
+      ],
+      "status": "planned",
+      "deliverable": "可运行纵向切片、变更源码revision、实际测试/证据及剩余限制",
+      "required_reading": [
+        "AGENTS.md",
+        "docs/ARCHITECTURE.md",
+        "docs/STATE_AND_CONSISTENCY.md",
+        "docs/ACCEPTANCE.md",
+        "design/README.md",
+        "docs/VISUAL_SPEC.md",
+        "docs/DESIGN_UPDATE_SOFT_GLASS.md",
+        "docs/GIT_WORKFLOW.md"
+      ],
+      "gate": "关联TC适用部分通过；真实环境缺失标blocked，不宣称阶段完整",
+      "visual_baseline": "Symphony Soft Glass v1.0"
+    },
+    {
+      "id": "T08",
+      "milestone": "M2",
+      "title": "暂停/采用/计划/恢复一致性与对账",
+      "owner": "backend",
+      "depends_on": [
+        "T04",
+        "T06"
+      ],
+      "requirements": [
+        "R05",
+        "R11"
+      ],
+      "acceptance_tests": [
+        "TC07",
+        "TC08",
+        "TC09"
+      ],
+      "allowed_paths": [
+        "elixir/lib/symphony_elixir/experience/operations.ex",
+        "elixir/lib/symphony_elixir/linear/workbench_adapter.ex"
+      ],
+      "status": "planned",
+      "deliverable": "可运行纵向切片、变更源码revision、实际测试/证据及剩余限制",
+      "required_reading": [
+        "AGENTS.md",
+        "docs/ARCHITECTURE.md",
+        "docs/STATE_AND_CONSISTENCY.md",
+        "docs/ACCEPTANCE.md",
+        "docs/GIT_WORKFLOW.md"
+      ],
+      "gate": "关联TC适用部分通过；真实环境缺失标blocked，不宣称阶段完整"
+    },
+    {
+      "id": "T09",
+      "milestone": "M2",
+      "title": "审阅页、约束、逐步回执和真实Agent闭环",
+      "owner": "integration",
+      "depends_on": [
+        "T07",
+        "T08"
+      ],
+      "requirements": [
+        "R05",
+        "R10",
+        "R12"
+      ],
+      "acceptance_tests": [
+        "TC08",
+        "TC09",
+        "TC18"
+      ],
+      "allowed_paths": [
+        "elixir/lib/symphony_elixir_web/live/workbench/reviews_live.ex",
+        "elixir/WORKFLOW.md",
+        "elixir/test/"
+      ],
+      "status": "planned",
+      "deliverable": "可运行纵向切片、变更源码revision、实际测试/证据及剩余限制",
+      "required_reading": [
+        "AGENTS.md",
+        "docs/ARCHITECTURE.md",
+        "docs/STATE_AND_CONSISTENCY.md",
+        "docs/ACCEPTANCE.md",
+        "design/README.md",
+        "docs/VISUAL_SPEC.md",
+        "docs/DESIGN_UPDATE_SOFT_GLASS.md",
+        "docs/GIT_WORKFLOW.md"
+      ],
+      "gate": "关联TC适用部分通过；真实环境缺失标blocked，不宣称阶段完整",
+      "visual_baseline": "Symphony Soft Glass v1.0"
+    },
+    {
+      "id": "T10",
+      "milestone": "M3",
+      "title": "Archify固定版本/任务与产物验证",
+      "owner": "backend",
+      "depends_on": [
+        "T06",
+        "T09"
+      ],
+      "requirements": [
+        "R06",
+        "R09"
+      ],
+      "acceptance_tests": [
+        "TC10",
+        "TC11",
+        "TC20"
+      ],
+      "allowed_paths": [
+        "elixir/lib/symphony_elixir/experience/architecture.ex",
+        "docs/architecture/"
+      ],
+      "status": "planned",
+      "deliverable": "可运行纵向切片、变更源码revision、实际测试/证据及剩余限制",
+      "required_reading": [
+        "AGENTS.md",
+        "docs/ARCHITECTURE.md",
+        "docs/STATE_AND_CONSISTENCY.md",
+        "docs/ACCEPTANCE.md",
+        "docs/GIT_WORKFLOW.md"
+      ],
+      "gate": "关联TC适用部分通过；真实环境缺失标blocked，不宣称阶段完整"
+    },
+    {
+      "id": "T11",
+      "milestone": "M3",
+      "title": "架构页、隔离viewer、版本与component manifest",
+      "owner": "frontend",
+      "depends_on": [
+        "T05",
+        "T10"
+      ],
+      "requirements": [
+        "R06",
+        "R10"
+      ],
+      "acceptance_tests": [
+        "TC10",
+        "TC11",
+        "TC15",
+        "TC17"
+      ],
+      "allowed_paths": [
+        "elixir/lib/symphony_elixir_web/live/workbench/architecture_live.ex",
+        "elixir/lib/symphony_elixir_web/"
+      ],
+      "status": "planned",
+      "deliverable": "可运行纵向切片、变更源码revision、实际测试/证据及剩余限制",
+      "required_reading": [
+        "AGENTS.md",
+        "docs/ARCHITECTURE.md",
+        "docs/STATE_AND_CONSISTENCY.md",
+        "docs/ACCEPTANCE.md",
+        "design/README.md",
+        "docs/VISUAL_SPEC.md",
+        "docs/DESIGN_UPDATE_SOFT_GLASS.md",
+        "docs/GIT_WORKFLOW.md"
+      ],
+      "gate": "关联TC适用部分通过；真实环境缺失标blocked，不宣称阶段完整",
+      "visual_baseline": "Symphony Soft Glass v1.0"
+    },
+    {
+      "id": "T12",
+      "milestone": "M4",
+      "title": "DeviceManager/serial helper/PTY/leases",
+      "owner": "device",
+      "depends_on": [
+        "T02",
+        "T03",
+        "T06"
+      ],
+      "requirements": [
+        "R07",
+        "R11"
+      ],
+      "acceptance_tests": [
+        "TC12",
+        "TC15",
+        "TC22"
+      ],
+      "allowed_paths": [
+        "elixir/lib/symphony_elixir/devices/",
+        "elixir/priv/device_helper/"
+      ],
+      "status": "planned",
+      "deliverable": "可运行纵向切片、变更源码revision、实际测试/证据及剩余限制",
+      "required_reading": [
+        "AGENTS.md",
+        "docs/ARCHITECTURE.md",
+        "docs/STATE_AND_CONSISTENCY.md",
+        "docs/ACCEPTANCE.md",
+        "docs/GIT_WORKFLOW.md"
+      ],
+      "gate": "关联TC适用部分通过；真实环境缺失标blocked，不宣称阶段完整"
+    },
+    {
+      "id": "T13",
+      "milestone": "M4",
+      "title": "设备页、串口流/导出、真实板采集",
+      "owner": "device",
+      "depends_on": [
+        "T05",
+        "T12"
+      ],
+      "requirements": [
+        "R07",
+        "R10"
+      ],
+      "acceptance_tests": [
+        "TC12",
+        "TC13",
+        "TC18"
+      ],
+      "allowed_paths": [
+        "elixir/lib/symphony_elixir_web/live/workbench/devices_live.ex",
+        "elixir/test/"
+      ],
+      "status": "planned",
+      "deliverable": "可运行纵向切片、变更源码revision、实际测试/证据及剩余限制",
+      "required_reading": [
+        "AGENTS.md",
+        "docs/ARCHITECTURE.md",
+        "docs/STATE_AND_CONSISTENCY.md",
+        "docs/ACCEPTANCE.md",
+        "design/README.md",
+        "docs/VISUAL_SPEC.md",
+        "docs/DESIGN_UPDATE_SOFT_GLASS.md",
+        "docs/GIT_WORKFLOW.md"
+      ],
+      "gate": "关联TC适用部分通过；真实环境缺失标blocked，不宣称阶段完整",
+      "visual_baseline": "Symphony Soft Glass v1.0"
+    },
+    {
+      "id": "T14",
+      "milestone": "M4",
+      "title": "图像源、dump与真实目标decoder",
+      "owner": "device",
+      "depends_on": [
+        "T12",
+        "T13"
+      ],
+      "requirements": [
+        "R08"
+      ],
+      "acceptance_tests": [
+        "TC14",
+        "TC15"
+      ],
+      "allowed_paths": [
+        "elixir/lib/symphony_elixir/devices/",
+        "elixir/priv/device_helper/",
+        "elixir/test/"
+      ],
+      "status": "planned",
+      "deliverable": "可运行纵向切片、变更源码revision、实际测试/证据及剩余限制",
+      "required_reading": [
+        "AGENTS.md",
+        "docs/ARCHITECTURE.md",
+        "docs/STATE_AND_CONSISTENCY.md",
+        "docs/ACCEPTANCE.md",
+        "docs/GIT_WORKFLOW.md"
+      ],
+      "gate": "关联TC适用部分通过；真实环境缺失标blocked，不宣称阶段完整"
+    },
+    {
+      "id": "T15",
+      "milestone": "M4",
+      "title": "持久化/异常/副作用恢复加固",
+      "owner": "backend",
+      "depends_on": [
+        "T08",
+        "T11",
+        "T14"
+      ],
+      "requirements": [
+        "R04",
+        "R05",
+        "R07",
+        "R11"
+      ],
+      "acceptance_tests": [
+        "TC05",
+        "TC08",
+        "TC15",
+        "TC16",
+        "TC21",
+        "TC22"
+      ],
+      "allowed_paths": [
+        "elixir/lib/symphony_elixir/experience/",
+        "elixir/lib/symphony_elixir/devices/",
+        "elixir/test/"
+      ],
+      "status": "planned",
+      "deliverable": "可运行纵向切片、变更源码revision、实际测试/证据及剩余限制",
+      "required_reading": [
+        "AGENTS.md",
+        "docs/ARCHITECTURE.md",
+        "docs/STATE_AND_CONSISTENCY.md",
+        "docs/ACCEPTANCE.md",
+        "docs/GIT_WORKFLOW.md"
+      ],
+      "gate": "关联TC适用部分通过；真实环境缺失标blocked，不宣称阶段完整"
+    },
+    {
+      "id": "T16",
+      "milestone": "M5",
+      "title": "五页美术/交互/性能与理解验收",
+      "owner": "frontend",
+      "depends_on": [
+        "T09",
+        "T11",
+        "T13",
+        "T14"
+      ],
+      "requirements": [
+        "R10",
+        "R12"
+      ],
+      "acceptance_tests": [
+        "TC17",
+        "TC18",
+        "TC19"
+      ],
+      "allowed_paths": [
+        "elixir/lib/symphony_elixir_web/",
+        "elixir/priv/static/",
+        "elixir/test/",
+        "docs/verification/"
+      ],
+      "status": "planned",
+      "deliverable": "可运行纵向切片、变更源码revision、实际测试/证据及剩余限制",
+      "required_reading": [
+        "AGENTS.md",
+        "docs/ARCHITECTURE.md",
+        "docs/STATE_AND_CONSISTENCY.md",
+        "docs/ACCEPTANCE.md",
+        "design/README.md",
+        "docs/VISUAL_SPEC.md",
+        "docs/DESIGN_UPDATE_SOFT_GLASS.md",
+        "docs/GIT_WORKFLOW.md"
+      ],
+      "gate": "关联TC适用部分通过；真实环境缺失标blocked，不宣称阶段完整",
+      "visual_baseline": "Symphony Soft Glass v1.0"
+    },
+    {
+      "id": "T17",
+      "milestone": "M5",
+      "title": "可安装release/备份恢复/运维",
+      "owner": "integration",
+      "depends_on": [
+        "T15",
+        "T16"
+      ],
+      "requirements": [
+        "R11",
+        "R12"
+      ],
+      "acceptance_tests": [
+        "TC23"
+      ],
+      "allowed_paths": [
+        "elixir/Makefile",
+        "elixir/mix.exs",
+        "elixir/mix.lock",
+        "docs/operations/"
+      ],
+      "status": "planned",
+      "deliverable": "可运行纵向切片、变更源码revision、实际测试/证据及剩余限制",
+      "required_reading": [
+        "AGENTS.md",
+        "docs/ARCHITECTURE.md",
+        "docs/STATE_AND_CONSISTENCY.md",
+        "docs/ACCEPTANCE.md",
+        "docs/GIT_WORKFLOW.md"
+      ],
+      "gate": "关联TC适用部分通过；真实环境缺失标blocked，不宣称阶段完整",
+      "git_deliverable": "GC01–GC05验收、实际保护与CI、授权/land/merge SHA证据"
+    },
+    {
+      "id": "T18",
+      "milestone": "M5",
+      "title": "真实端到端与最终trace关闭",
+      "owner": "integration",
+      "depends_on": [
+        "T17"
+      ],
+      "requirements": [
+        "R01",
+        "R02",
+        "R03",
+        "R04",
+        "R05",
+        "R06",
+        "R07",
+        "R08",
+        "R09",
+        "R10",
+        "R11",
+        "R12"
+      ],
+      "acceptance_tests": [
+        "TC01",
+        "TC24"
+      ],
+      "allowed_paths": [
+        "docs/verification/",
+        "docs/release/"
+      ],
+      "status": "planned",
+      "deliverable": "可运行纵向切片、变更源码revision、实际测试/证据及剩余限制",
+      "required_reading": [
+        "AGENTS.md",
+        "docs/ARCHITECTURE.md",
+        "docs/STATE_AND_CONSISTENCY.md",
+        "docs/ACCEPTANCE.md",
+        "docs/GIT_WORKFLOW.md"
+      ],
+      "gate": "关联TC适用部分通过；真实环境缺失标blocked，不宣称阶段完整",
+      "git_deliverable": "GC01–GC05验收、实际保护与CI、授权/land/merge SHA证据"
+    }
+  ]
+}

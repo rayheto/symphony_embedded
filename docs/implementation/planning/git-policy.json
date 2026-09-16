@@ -1,0 +1,59 @@
+{
+  "version": "1.0",
+  "convention": "Conventional Commits 1.0.0 with project restrictions",
+  "message": {
+    "types": [
+      "feat",
+      "fix",
+      "docs",
+      "style",
+      "refactor",
+      "perf",
+      "test",
+      "build",
+      "ci",
+      "chore",
+      "revert"
+    ],
+    "scope_required": true,
+    "scope_pattern": "[a-z][a-z0-9]*(?:-[a-z0-9]+)*",
+    "header_max_characters": 72,
+    "breaking_requires_bang_and_footer": true,
+    "subject_language": "zh-CN preferred; English allowed; identifiers unchanged"
+  },
+  "branch": {
+    "remote": "origin",
+    "baseline_target": "main",
+    "target_resolution": [
+      "explicit_session_instruction",
+      "repository_workflow_and_contribution_rules",
+      "remote_default_branch"
+    ],
+    "new_branch_pattern": "agent/<issue-id-or-task-key>-<short-slug>",
+    "protected_targets": [
+      "main",
+      "master",
+      "dev",
+      "develop",
+      "release/*"
+    ],
+    "force_push": false,
+    "rewrite_published_history": false
+  },
+  "automation": {
+    "local_commit": "after_coherent_slice_and_precommit_checks_pass",
+    "push": "validated_task_branch_after_pre_push_gates",
+    "draft_pr": "first_pushed_runnable_slice_then_update_same_pr",
+    "ready_for_review": "applicable_gates_green_and_feedback_resolved",
+    "merge": "trusted_existing_workflow_human_approval_then_land_skill",
+    "default_without_merge_approval": "keep_PR_in_review_and_continue_independent_work",
+    "release_or_tag": "separate_existing_workflow_or_explicit_authorization"
+  },
+  "enforcement": {
+    "validator": "scripts/check_commit_message.py",
+    "hook_example": "scripts/commit-msg.hook.example",
+    "installation_status": "not_installed_in_target_repository",
+    "ci_gate_status": "required_during_M0_implementation",
+    "policy_doc": "docs/GIT_WORKFLOW.md"
+  }
+}

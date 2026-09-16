@@ -1,0 +1,6 @@
+# Archify：项目架构对比
+
+使用已固定Archify skill。输入同一project的base/head IR、对应完整Git revisions、包含两个commit且origin匹配的repo-root、output目录与manifest。先核实两图的稳定组件/关系ID和来源，不根据名字相同强行合并。
+调用skill的compare architecture，保存独立receipt。只描述added/removed/changed/moved/rerouted结构事实，不把可达关系称为运行影响或安全证明。首版compare仅接受同一repo的两个source revision；source/planned并列阅读使用各自viewer与清晰来源标签，不冒充已核验源码delta。计划中的删除不代表实际代码已删除。
+失败保留已发布对比，不运行旧产物visual-check冒充新候选成功。HTML不可后处理。按上游契约分别收集deterministic、browser与perceptual证据，产物绑定hash。
+宿主负责显示Issue/Evidence关联，关系来自manifest来源。最终返回before/delta/after阅读入口、receipt、明确限制和需要重验的候选范围（不宣称影响分析完备）。

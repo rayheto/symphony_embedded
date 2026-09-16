@@ -1,0 +1,67 @@
+{
+  "type": "object",
+  "properties": {
+    "enabled": {
+      "type": "boolean"
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "live",
+        "demo"
+      ]
+    },
+    "project_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "data_root": {
+      "type": "string",
+      "minLength": 1
+    },
+    "domain_profile": {
+      "type": "string",
+      "minLength": 1
+    },
+    "device_config": {
+      "type": "string",
+      "minLength": 1
+    },
+    "archify_root": {
+      "type": "string",
+      "minLength": 1
+    },
+    "display_states": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    }
+  },
+  "required": [
+    "enabled"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "enabled": {
+            "const": true
+          }
+        },
+        "required": [
+          "enabled"
+        ]
+      },
+      "then": {
+        "required": [
+          "project_id"
+        ]
+      }
+    }
+  ]
+}

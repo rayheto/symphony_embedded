@@ -1,0 +1,10 @@
+#!/bin/sh
+# Merge this invocation into existing hooks; do not overwrite an existing hook chain.
+set -eu
+# Existing pull/land may create a real merge commit; CI verifies actual parent topology.
+if git rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1; then
+  exit 0
+fi
+symphony_repo_root=$(git rev-parse --show-toplevel)
+symphony_python=${SYMPHONY_PYTHON:-python3}
+exec "$symphony_python" "$symphony_repo_root/docs/implementation/scripts/check_commit_message.py" --file "$1"

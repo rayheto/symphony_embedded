@@ -1,0 +1,426 @@
+{
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "project_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "artifact_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "source",
+        "plan",
+        "delta"
+      ]
+    },
+    "source_repo_url": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_revision": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "base_revision": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "plan_revision": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "plan_sources": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "skill_commit": {
+      "const": "a07fa1d5b2a10cbea110c5a2be2817397a301cdc"
+    },
+    "ir_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "html_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "deliver_receipt_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "browser_receipt_sha256": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "visual_review_sha256": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "components": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "layers": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "L0",
+                "L1",
+                "L2",
+                "L3",
+                "L4",
+                "crosscutting",
+                "unclassified"
+              ]
+            }
+          },
+          "source_refs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "git",
+                    "document",
+                    "blob",
+                    "url"
+                  ]
+                },
+                "locator": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "repo_revision": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{40}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "line": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "end_line": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "kind",
+                "locator",
+                "repo_revision",
+                "line",
+                "end_line"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "issue_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "problem_case_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "evidence_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "implementation_status": {
+            "type": "string",
+            "enum": [
+              "planned",
+              "building",
+              "integrated"
+            ]
+          },
+          "verification_status": {
+            "type": "string",
+            "enum": [
+              "unverified",
+              "passed",
+              "failed",
+              "stale"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "layers",
+          "source_refs",
+          "issue_ids",
+          "problem_case_ids",
+          "evidence_ids",
+          "implementation_status",
+          "verification_status"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "relationships": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "from_component_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "to_component_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_refs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "git",
+                    "document",
+                    "blob",
+                    "url"
+                  ]
+                },
+                "locator": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "repo_revision": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{40}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "line": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "end_line": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "kind",
+                "locator",
+                "repo_revision",
+                "line",
+                "end_line"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "from_component_id",
+          "to_component_id",
+          "description",
+          "source_refs"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "project_id",
+    "artifact_id",
+    "kind",
+    "source_repo_url",
+    "source_revision",
+    "base_revision",
+    "plan_revision",
+    "plan_sources",
+    "skill_commit",
+    "ir_sha256",
+    "html_sha256",
+    "deliver_receipt_sha256",
+    "browser_receipt_sha256",
+    "visual_review_sha256",
+    "components",
+    "limitations",
+    "relationships"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "source"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "source_revision": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{40}$"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "plan"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "plan_revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "plan_sources": {
+            "minItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "delta"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "source_revision": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{40}$"
+          },
+          "base_revision": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{40}$"
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "id": "E-017",
+  "project_id": "embedded-lab-demo",
+  "revision": 1,
+  "created_at": "2026-09-14T10:38:00Z",
+  "updated_at": "2026-09-14T10:38:00Z",
+  "source_kind": "serial",
+  "title": "E-017 串口片段",
+  "raw": [
+    {
+      "blob_sha256": "bc84ef14c9a9adaec95b1db8187e822a7feba892e213e30bba232b22f798c915",
+      "start_byte": 0,
+      "end_byte_exclusive": 160,
+      "source_seq_start": null,
+      "source_seq_end": null
+    }
+  ],
+  "source_refs": [],
+  "binding": {
+    "repo_revision": null,
+    "worktree_patch_sha256": null,
+    "build_id": "demo-build",
+    "firmware_sha256": null,
+    "device_id": "Board-01",
+    "hardware_revision": "rev A",
+    "boot_id": "boot-07",
+    "config_sha256": null,
+    "test_profile": "demo_fixture",
+    "criteria_revision": null
+  },
+  "captured_at": null,
+  "received_at": "2026-09-14T10:36:02Z",
+  "capture_session_id": "demo-evidence-capture-017",
+  "derivation_of": [],
+  "limitations": [
+    "示例片段",
+    "事件含义与顺序仍需核验",
+    "仅有日志片段，尚未完成真机复测。",
+    "demo-build 与设备页 demo-build-12 的关联未经确认，不因同名boot合并采集会话。"
+  ],
+  "supersedes": null,
+  "content_status": "available",
+  "review_status": "unseen"
+}

@@ -1,0 +1,31 @@
+{
+  "id": "demo-validation-017",
+  "project_id": "embedded-lab-demo",
+  "revision": 1,
+  "created_at": "2026-09-14T10:38:00Z",
+  "updated_at": "2026-09-14T10:38:00Z",
+  "claim_id": "claim-buffer-reuse",
+  "evidence_ids": [
+    "E-017"
+  ],
+  "criteria": "完成事件含义与缓冲区身份确定，真实目标连续切换画面复测",
+  "criteria_revision": "demo-criteria-1",
+  "binding": {
+    "repo_revision": null,
+    "worktree_patch_sha256": null,
+    "build_id": "demo-build",
+    "firmware_sha256": null,
+    "device_id": "Board-01",
+    "hardware_revision": "rev A",
+    "boot_id": "boot-07",
+    "config_sha256": null,
+    "test_profile": "demo_fixture",
+    "criteria_revision": null
+  },
+  "result": "unverified",
+  "executed_at": null,
+  "command_record_sha256": null,
+  "limitations": [
+    "尚未开展真实验证"
+  ]
+}

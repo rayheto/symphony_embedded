@@ -1,0 +1,7 @@
+10:36:01.102  boot_id=boot-07
+10:36:01.210  panel_init ok
+10:36:01.448  dma_submit buf=01
+10:36:01.451  dma_submit buf=02
+10:36:01.460  buffer_reuse buf=01
+10:36:01.472  dma_done buf=01
+10:36:01.510  display_frame 128

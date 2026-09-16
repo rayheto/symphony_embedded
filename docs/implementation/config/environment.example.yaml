@@ -1,0 +1,12 @@
+schema_version: "1.0"
+status: not_configured
+symphony_revision: e0ccc83720a42a600a53b61c5f8d3e518bebe1db
+archify_revision: a07fa1d5b2a10cbea110c5a2be2817397a301cdc
+host: {os: null, architecture: null, cpu: null, memory_bytes: null}
+provider: {kind: linear, test_project_slug: null, paused_state_id: null, review_state_id: null}
+project: {repo_url: null, revision: null, profile_path: null}
+agent: {codex_version: null, executable: null, auth_checked: false}
+device: {identity: null, hardware_revision: null, port: null, build_id: null, firmware_sha256: null, elf_sha256: null, decoder: null}
+image_source: {adapter: null, identity: null}
+checks: {baseline: not_run, tracker_live: not_run, agent_live: not_run, board_live: not_run, dump_live: not_run, arm64_install: not_run}
+# Record secret names only; never credentials or session tokens.

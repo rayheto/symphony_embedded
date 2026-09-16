@@ -1,0 +1,372 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "data"
+        },
+        "session_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "received_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "monotonic_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "payload_base64": {
+          "type": "string",
+          "contentEncoding": "base64",
+          "maxLength": 87384
+        }
+      },
+      "required": [
+        "kind",
+        "session_id",
+        "source_seq",
+        "received_at",
+        "monotonic_ns",
+        "payload_base64"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "gap"
+        },
+        "session_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "received_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "monotonic_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "from_seq": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "to_seq": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "kind",
+        "session_id",
+        "source_seq",
+        "received_at",
+        "monotonic_ns",
+        "from_seq",
+        "to_seq",
+        "reason"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "state"
+        },
+        "session_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "received_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "monotonic_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "connected",
+            "disconnected",
+            "error"
+          ]
+        },
+        "detail": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "session_id",
+        "source_seq",
+        "received_at",
+        "monotonic_ns",
+        "state",
+        "detail"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "response"
+        },
+        "request_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "ok",
+            "error"
+          ]
+        },
+        "error": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "request_id",
+        "status",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "request"
+        },
+        "request_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "command": {
+          "const": "open"
+        },
+        "payload": {
+          "type": "object",
+          "properties": {
+            "session_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "port": {
+              "type": "string",
+              "minLength": 1
+            },
+            "baudrate": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "bytesize": {
+              "type": "string",
+              "enum": [
+                "5",
+                "6",
+                "7",
+                "8"
+              ]
+            },
+            "parity": {
+              "type": "string",
+              "enum": [
+                "N",
+                "E",
+                "O"
+              ]
+            },
+            "stopbits": {
+              "type": "string",
+              "enum": [
+                "1",
+                "1.5",
+                "2"
+              ]
+            },
+            "read_timeout_ms": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "session_id",
+            "port",
+            "baudrate",
+            "bytesize",
+            "parity",
+            "stopbits",
+            "read_timeout_ms"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "kind",
+        "request_id",
+        "command",
+        "payload"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "request"
+        },
+        "request_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "command": {
+          "const": "close"
+        },
+        "payload": {
+          "type": "object",
+          "properties": {
+            "session_id": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "session_id"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "kind",
+        "request_id",
+        "command",
+        "payload"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "request"
+        },
+        "request_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "command": {
+          "const": "ping"
+        },
+        "payload": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "kind",
+        "request_id",
+        "command",
+        "payload"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "request"
+        },
+        "request_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "command": {
+          "const": "write"
+        },
+        "payload": {
+          "type": "object",
+          "properties": {
+            "session_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "payload_base64": {
+              "type": "string",
+              "contentEncoding": "base64",
+              "maxLength": 87384
+            },
+            "lease_generation": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "session_id",
+            "payload_base64",
+            "lease_generation"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "kind",
+        "request_id",
+        "command",
+        "payload"
+      ],
+      "additionalProperties": false
+    }
+  ]
+}

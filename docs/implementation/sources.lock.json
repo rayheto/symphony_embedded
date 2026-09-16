@@ -1,0 +1,202 @@
+{
+  "captured_at": "2026-09-14",
+  "status": "inspected_source_not_product_execution",
+  "symphony": {
+    "repository": "https://github.com/rayheto/symphony_embedded",
+    "revision": "e0ccc83720a42a600a53b61c5f8d3e518bebe1db",
+    "spec_url": "https://github.com/rayheto/symphony_embedded/blob/e0ccc83720a42a600a53b61c5f8d3e518bebe1db/SPEC.md",
+    "spec_sha256": "c6638056502ecd2e60eb04e1f1a627a4964506fcdf4d39873e78aa5834de85d5",
+    "license_path": "upstream/LICENSE.symphony",
+    "runtime_design": "Extend existing Elixir/Phoenix/LiveView implementation; exact target runtime resolved from upstream tool config/lockfiles in M0."
+  },
+  "archify": {
+    "repository": "https://github.com/tt-a1i/archify",
+    "revision": "a07fa1d5b2a10cbea110c5a2be2817397a301cdc",
+    "skill_path": "archify/SKILL.md",
+    "skill_version": "2.17",
+    "skill_url": "https://github.com/tt-a1i/archify/blob/a07fa1d5b2a10cbea110c5a2be2817397a301cdc/archify/SKILL.md",
+    "license_path": "upstream/LICENSE.archify",
+    "commands": [
+      "validate architecture",
+      "deliver architecture",
+      "visual-check",
+      "compare architecture"
+    ],
+    "actual_artifact_generation": "not_run; actual target project/revision must be supplied by M0 and generated during M3"
+  },
+  "attachments": [
+    {
+      "package_path": "design/soft-glass/README.md",
+      "sha256": "6db75c6ad7d7dd28c3e66c7b1ab81acec27a8ada46d9a1cbee76de560f9135dd",
+      "size_bytes": 2524
+    },
+    {
+      "package_path": "design/soft-glass/design/Symphony-Soft-Glass-guide.md",
+      "sha256": "411554aaf128369006800f98a54306c0417a6f600631213e7412d9d1b21f8aa2",
+      "size_bytes": 6905
+    },
+    {
+      "package_path": "design/soft-glass/design/Symphony-Soft-Glass-image-prompt.txt",
+      "sha256": "9a2e2944346cdf24c9aa19d521fb028fd2e9dd22db1f26197c7573639e6b6905",
+      "size_bytes": 2269
+    },
+    {
+      "package_path": "design/soft-glass/design/Symphony-Soft-Glass-palette.svg",
+      "sha256": "11840468f78b49b48b17ad848637a03448064e39552e8b120c2625fcee061d6c",
+      "size_bytes": 4146
+    },
+    {
+      "package_path": "design/soft-glass/design/Symphony-Soft-Glass-reference.png",
+      "sha256": "d66f549ddf30f61bbae236a1742c451629ece6398ae002defaf9c7ae4e437cba",
+      "size_bytes": 1420600,
+      "pixels": [
+        1536,
+        1024
+      ]
+    },
+    {
+      "package_path": "design/soft-glass/design/Symphony-Soft-Glass.css",
+      "sha256": "4a465893f4dbdde9e486b868f560ce6c56598830e3f6c2f836fc562245463232",
+      "size_bytes": 1838
+    },
+    {
+      "package_path": "design/soft-glass/design/Symphony-Soft-Glass.tokens.json",
+      "sha256": "f2baa363a1cd10fb3ec72a6398803771ea3ad6812d5edbc0951c3d39b8e9259c",
+      "size_bytes": 1204
+    },
+    {
+      "package_path": "design/soft-glass/design/Symphony-design-prompt.md",
+      "sha256": "f95a4e787352275bb7e866ba99e7f828cd5de8d1544d2288f2e5c622d7bdce80",
+      "size_bytes": 9619
+    },
+    {
+      "package_path": "design/soft-glass/manifest.json",
+      "sha256": "a41615b38fe08b7c3e087ed9e24f55cdce3a64228a49f2b1b5ad61b98c6ad87e",
+      "size_bytes": 3279
+    },
+    {
+      "package_path": "design/soft-glass/previews/01-issues.png",
+      "sha256": "e39bcc2077db33887ed3aa66bcffb81761c7575512d9cb4e5c17f5ca47d70695",
+      "size_bytes": 1224160,
+      "pixels": [
+        1586,
+        992
+      ]
+    },
+    {
+      "package_path": "design/soft-glass/previews/02-investigation.png",
+      "sha256": "2b1a9a29f48b87da601d3793dbd92291ab4cc92e05e0615fc9b03f1321c3729d",
+      "size_bytes": 1068902,
+      "pixels": [
+        1586,
+        992
+      ]
+    },
+    {
+      "package_path": "design/soft-glass/previews/03-devices.png",
+      "sha256": "c844567735dee99437f7e6404d84daa7f45c37798a67f4a5e396e8bcccc3d8b3",
+      "size_bytes": 1060088,
+      "pixels": [
+        1586,
+        992
+      ]
+    },
+    {
+      "package_path": "design/soft-glass/previews/04-review.png",
+      "sha256": "9456dc2bd3029f3a3f14e679918834b25547e55eeeac1e93c8825b2663a8777d",
+      "size_bytes": 1001148,
+      "pixels": [
+        1586,
+        992
+      ]
+    },
+    {
+      "package_path": "design/soft-glass/prompts/01-page-prompt.txt",
+      "sha256": "525d100d6335cf8bf67e32c9f753ee710e419e152dcf73cdad5d8145ba932053",
+      "size_bytes": 2548
+    },
+    {
+      "package_path": "design/soft-glass/prompts/01-timestamp-correction.txt",
+      "sha256": "58297a5cf97d4710339e6767d49fe254435ace65ca7e2f089aeb8fb2656fa3c3",
+      "size_bytes": 519
+    },
+    {
+      "package_path": "design/soft-glass/prompts/02-page-prompt.txt",
+      "sha256": "2f07aa38b618309c0723400a6444ec68e518f0f2a44b89fd19a26bd475b10040",
+      "size_bytes": 3154
+    },
+    {
+      "package_path": "design/soft-glass/prompts/03-page-prompt.txt",
+      "sha256": "a9d3ac61cf1dab36a43ea29d546384e03570690d151d818f21f6fe4cd54b11a4",
+      "size_bytes": 3131
+    },
+    {
+      "package_path": "design/soft-glass/prompts/04-page-prompt.txt",
+      "sha256": "76dc71fdd61fe12e5af5494c385703d55a7400c4190f1a0a9a2d03671621e5ff",
+      "size_bytes": 3223
+    }
+  ],
+  "inspected_paths": [
+    "elixir/AGENTS.md",
+    "elixir/mix.exs",
+    "elixir/mix.lock",
+    "elixir/lib/symphony_elixir/orchestrator.ex",
+    "elixir/lib/symphony_elixir/config.ex",
+    "elixir/lib/symphony_elixir/tracker.ex",
+    "elixir/lib/symphony_elixir_web/router.ex",
+    "elixir/lib/symphony_elixir_web/live/dashboard_live.ex",
+    "archify/SKILL.md",
+    "archify/bin/archify.mjs",
+    "archify/assets/template.html"
+  ],
+  "video_reference": {
+    "url": "https://player.vimeo.com/video/1186371009?h=5626e4b899",
+    "role": "Earlier style reference only; selected Soft Glass v1.0 guide/tokens/CSS govern current visuals.",
+    "inspection_status": "No video-specific assertions used."
+  },
+  "updated_at": "2026-09-15",
+  "previous_visual_sources": [
+    {
+      "package_path": "design/reference/four-screens-preview.png",
+      "sha256": "7a4145f4ce3ddb9d17b1a45911f5b863b958c829fd88ba3daa2197ff6d1b8e9d",
+      "size_bytes": 1558418,
+      "pixels": [
+        1586,
+        992
+      ]
+    },
+    {
+      "package_path": "design/reference/design-prompt.md",
+      "sha256": "f95a4e787352275bb7e866ba99e7f828cd5de8d1544d2288f2e5c622d7bdce80",
+      "size_bytes": 9619
+    },
+    {
+      "package_path": "design/reference/image-generation-prompt.txt",
+      "sha256": "2dbc3981e9a18f49ce571011b0b1b0d660018ec346bcf8528e22b9ceca122e30",
+      "size_bytes": 3514
+    }
+  ],
+  "visual_design": {
+    "name": "Symphony Soft Glass",
+    "version": "1.0",
+    "selected_at": "2026-09-15",
+    "archive_name": "Symphony-Soft-Glass-delivery-v1.zip",
+    "archive_sha256": "e507d481c10740df4c82878feb31711492a796a352a24f8f26400207127d44d4",
+    "source_root": "design/soft-glass",
+    "canonical_tokens": "design/tokens.json",
+    "canonical_css": "design/tokens.css",
+    "authority": "Soft Glass guide/tokens/CSS govern visual values; bundled business prompt governs fields and state semantics; PNG is reference only."
+  },
+  "git_convention": {
+    "url": "https://www.conventionalcommits.org/en/v1.0.0/",
+    "checked_at": "2026-09-15",
+    "project_restrictions": [
+      "scope required",
+      "lowercase type/scope",
+      "72 Unicode character header",
+      "bang and breaking footer together"
+    ],
+    "upstream_workflow": "upstream/WORKFLOW.elixir.original.md",
+    "upstream_pr_template": "upstream/pull_request_template.original.md"
+  }
+}

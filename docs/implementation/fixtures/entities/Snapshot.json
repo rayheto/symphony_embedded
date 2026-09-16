@@ -1,0 +1,19 @@
+{
+  "project_id": "embedded-lab-demo",
+  "snapshot_seq": 1,
+  "generated_at": "2026-09-14T10:38:00Z",
+  "tracker_fetched_at": "2026-09-14T10:38:00Z",
+  "runtime_observed_at": "2026-09-14T10:38:00Z",
+  "source_health": [
+    {
+      "source": "demo",
+      "status": "healthy",
+      "last_success_at": "2026-09-14T10:38:00Z",
+      "detail": "fixture"
+    }
+  ],
+  "issue_count": 8,
+  "running_count": 3,
+  "review_count": 1,
+  "paused_count": 1
+}

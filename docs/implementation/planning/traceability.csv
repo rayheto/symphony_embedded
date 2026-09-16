@@ -1,0 +1,13 @@
+requirement_id,spec,design_contract,tasks,acceptance_tests,implementation_status,evidence
+R01,PRD.md;SPEC.md;docs/CONFORMANCE.md,docs/ARCHITECTURE.md;docs/INTERACTION_SPEC.md;contracts/openapi.yaml,T01;T18,TC01;TC02;TC24,not_started,
+R02,PRD.md;SPEC.md;docs/CONFORMANCE.md,docs/ARCHITECTURE.md;docs/INTERACTION_SPEC.md;contracts/openapi.yaml,T02;T04;T05;T18,TC03;TC24,not_started,
+R03,PRD.md;SPEC.md;docs/CONFORMANCE.md,docs/ARCHITECTURE.md;docs/INTERACTION_SPEC.md;contracts/openapi.yaml,T06;T07;T18,TC04;TC06;TC24,not_started,
+R04,PRD.md;SPEC.md;docs/CONFORMANCE.md,docs/ARCHITECTURE.md;docs/INTERACTION_SPEC.md;contracts/openapi.yaml,T03;T06;T07;T15;T18,TC04;TC05;TC15;TC24,not_started,
+R05,PRD.md;SPEC.md;docs/CONFORMANCE.md,docs/ARCHITECTURE.md;docs/INTERACTION_SPEC.md;contracts/openapi.yaml,T04;T08;T09;T15;T18,TC06;TC07;TC08;TC09;TC22;TC24,not_started,
+R06,PRD.md;SPEC.md;docs/CONFORMANCE.md,docs/ARCHITECTURE.md;docs/INTERACTION_SPEC.md;contracts/openapi.yaml,T10;T11;T18,TC10;TC11;TC15;TC24,not_started,
+R07,PRD.md;SPEC.md;docs/CONFORMANCE.md,docs/ARCHITECTURE.md;docs/INTERACTION_SPEC.md;contracts/openapi.yaml,T02;T12;T13;T15;T18,TC12;TC13;TC15;TC22;TC24,not_started,
+R08,PRD.md;SPEC.md;docs/CONFORMANCE.md,docs/ARCHITECTURE.md;docs/INTERACTION_SPEC.md;contracts/openapi.yaml,T14;T18,TC14;TC24,not_started,
+R09,PRD.md;SPEC.md;docs/CONFORMANCE.md,docs/ARCHITECTURE.md;docs/INTERACTION_SPEC.md;contracts/openapi.yaml,T02;T10;T18,TC02;TC20;TC24,not_started,
+R10,PRD.md;SPEC.md;docs/CONFORMANCE.md,docs/ARCHITECTURE.md;docs/INTERACTION_SPEC.md;contracts/openapi.yaml,T05;T07;T09;T11;T13;T16;T18,TC17;TC18;TC19;TC24,not_started,
+R11,PRD.md;SPEC.md;docs/CONFORMANCE.md,docs/ARCHITECTURE.md;docs/INTERACTION_SPEC.md;contracts/openapi.yaml,T03;T08;T12;T15;T17;T18,TC02;TC05;TC07;TC08;TC12;TC16;TC18;TC21;TC24,not_started,
+R12,PRD.md;SPEC.md;docs/CONFORMANCE.md,docs/ARCHITECTURE.md;docs/INTERACTION_SPEC.md;contracts/openapi.yaml,T01;T02;T09;T16;T17;T18,TC13;TC19;TC23;TC24,not_started,

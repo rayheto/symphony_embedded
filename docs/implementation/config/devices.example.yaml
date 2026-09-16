@@ -1,0 +1,27 @@
+schema_version: "1.0"
+host_id: replace-with-stable-host-id
+serial:
+  baudrate: 115200
+  bytesize: 8
+  parity: N
+  stopbits: 1
+  read_timeout_ms: 100
+  raw_payload_max_bytes: 65536
+  transport_line_max_bytes: 98304
+  chunk_max_bytes: 8388608
+  chunk_max_age_seconds: 60
+  browser_max_lines: 5000
+storage:
+  retention_days: 30
+  capacity_bytes: 10737418240
+  warn_at_percent: 80
+  pinned_evidence_auto_delete: false
+# No sample port is allowed to operate on real hardware. Add actual validated identity at M0.
+devices: []
+image_sources: []
+decoders: []
+actions: []
+# Each device: key, display_name, adapter, host_id, identity (e.g. USB serial/vendor/product),
+# port, serial overrides, hardware_revision, supported_capabilities.
+# Each action: tool_id, absolute_executable, fixed_argv_template, timeout_ms,
+# required_capability, idempotent, preconditions; never free-form browser shell.

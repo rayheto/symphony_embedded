@@ -1,0 +1,34 @@
+{
+  "id": "Board-01",
+  "project_id": "embedded-lab-demo",
+  "revision": 1,
+  "created_at": "2026-09-14T10:38:00Z",
+  "updated_at": "2026-09-14T10:38:00Z",
+  "display_name": "Board-01",
+  "adapter": "demo",
+  "host_id": "demo-host",
+  "hardware_revision": "rev A",
+  "connection_status": "online",
+  "build_id": "demo-build-12",
+  "firmware_sha256": null,
+  "active_session_id": "demo-device-capture-12",
+  "lease": {
+    "resource_id": "demo-host:Board-01:control",
+    "owner_run_id": "demo-run-42",
+    "generation": 1,
+    "expires_at": "2026-09-14T10:45:00Z",
+    "status": "active"
+  },
+  "capabilities": [
+    {
+      "name": "read_serial",
+      "available": true,
+      "reason": null
+    },
+    {
+      "name": "run_action",
+      "available": false,
+      "reason": "Demo仅演示，不控制真实设备"
+    }
+  ]
+}

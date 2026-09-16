@@ -1,0 +1,103 @@
+{
+  "name": "Symphony Soft Glass",
+  "version": "1.0",
+  "date": "2026-09-15",
+  "type": "Design previews and implementation references",
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 2524,
+      "sha256": "6DB75C6AD7D7DD28C3E66C7B1AB81ACEC27A8ADA46D9A1CBEE76DE560F9135DD"
+    },
+    {
+      "path": "design/Symphony-design-prompt.md",
+      "bytes": 9619,
+      "sha256": "F95A4E787352275BB7E866BA99E7F828CD5DE8D1544D2288F2E5C622D7BDCE80"
+    },
+    {
+      "path": "design/Symphony-Soft-Glass-guide.md",
+      "bytes": 6905,
+      "sha256": "411554AAF128369006800F98A54306C0417A6F600631213E7412D9D1B21F8AA2"
+    },
+    {
+      "path": "design/Symphony-Soft-Glass-image-prompt.txt",
+      "bytes": 2269,
+      "sha256": "9A2E2944346CDF24C9AA19D521FB028FD2E9DD22DB1F26197C7573639E6B6905"
+    },
+    {
+      "path": "design/Symphony-Soft-Glass-palette.svg",
+      "bytes": 4146,
+      "sha256": "11840468F78B49B48B17AD848637A03448064E39552E8B120C2625FCEE061D6C"
+    },
+    {
+      "path": "design/Symphony-Soft-Glass-reference.png",
+      "bytes": 1420600,
+      "sha256": "D66F549DDF30F61BBAE236A1742C451629ECE6398AE002DEFAF9C7AE4E437CBA",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "path": "design/Symphony-Soft-Glass.css",
+      "bytes": 1838,
+      "sha256": "4A465893F4DBDDE9E486B868F560CE6C56598830E3F6C2F836FC562245463232"
+    },
+    {
+      "path": "design/Symphony-Soft-Glass.tokens.json",
+      "bytes": 1204,
+      "sha256": "F2BAA363A1CD10FB3EC72A6398803771EA3AD6812D5EDBC0951C3D39B8E9259C"
+    },
+    {
+      "path": "previews/01-issues.png",
+      "bytes": 1224160,
+      "sha256": "E39BCC2077DB33887ED3AA66BCFFB81761C7575512D9CB4E5C17F5CA47D70695",
+      "width": 1586,
+      "height": 992
+    },
+    {
+      "path": "previews/02-investigation.png",
+      "bytes": 1068902,
+      "sha256": "2B1A9A29F48B87DA601D3793DBD92291AB4CC92E05E0615FC9B03F1321C3729D",
+      "width": 1586,
+      "height": 992
+    },
+    {
+      "path": "previews/03-devices.png",
+      "bytes": 1060088,
+      "sha256": "C844567735DEE99437F7E6404D84DAA7F45C37798A67F4A5E396E8BCCCC3D8B3",
+      "width": 1586,
+      "height": 992
+    },
+    {
+      "path": "previews/04-review.png",
+      "bytes": 1001148,
+      "sha256": "9456DC2BD3029F3A3F14E679918834B25547E55EEEAC1E93C8825B2663A8777D",
+      "width": 1586,
+      "height": 992
+    },
+    {
+      "path": "prompts/01-page-prompt.txt",
+      "bytes": 2548,
+      "sha256": "525D100D6335CF8BF67E32C9F753EE710E419E152DCF73CDAD5D8145BA932053"
+    },
+    {
+      "path": "prompts/01-timestamp-correction.txt",
+      "bytes": 519,
+      "sha256": "58297A5CF97D4710339E6767D49FE254435ACE65CA7E2F089AEB8FB2656FA3C3"
+    },
+    {
+      "path": "prompts/02-page-prompt.txt",
+      "bytes": 3154,
+      "sha256": "2F07AA38B618309C0723400A6444EC68E518F0F2A44B89FD19A26BD475B10040"
+    },
+    {
+      "path": "prompts/03-page-prompt.txt",
+      "bytes": 3131,
+      "sha256": "A9D3AC61CF1DAB36A43EA29D546384E03570690D151D818F21F6FE4CD54B11A4"
+    },
+    {
+      "path": "prompts/04-page-prompt.txt",
+      "bytes": 3223,
+      "sha256": "76DC71FDD61FE12E5AF5494C385703D55A7400C4190F1A0A9A2D03671621E5FF"
+    }
+  ]
+}

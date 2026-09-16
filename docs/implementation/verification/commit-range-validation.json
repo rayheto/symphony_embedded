@@ -1,0 +1,11 @@
+{
+  "scope": "temporary_local_git_repository_only",
+  "passed": [
+    "valid ordinary commits pass while legacy base history excluded",
+    "real merge exempt based on parent topology",
+    "fake Merge title in ordinary commit rejected",
+    "unresolvable pinned range fails closed"
+  ],
+  "remote_operations": "none",
+  "target_hook_ci": "not_installed"
+}

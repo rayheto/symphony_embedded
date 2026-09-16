@@ -1,0 +1,659 @@
+{
+  "mode": "demo",
+  "clock_utc": "2026-09-14T10:38:00Z",
+  "project_id": "embedded-lab-demo",
+  "notice": "演示数据，不代表真实设备、实验或执行回执。",
+  "issues": [
+    {
+      "id": "demo-issue-46",
+      "project_id": "embedded-lab-demo",
+      "revision": 1,
+      "created_at": "2026-09-14T10:38:00Z",
+      "updated_at": "2026-09-14T10:38:00Z",
+      "identifier": "EMB-46",
+      "provider": "demo",
+      "provider_id": "demo-issue-46",
+      "provider_version": "fixture-1",
+      "title": "补充面板上电时序证据",
+      "description": "",
+      "native_state": "Todo",
+      "display_column": "待办",
+      "assignee": "Hardware Agent",
+      "labels": [],
+      "url": "https://example.invalid/issue/EMB-46",
+      "capabilities": [
+        {
+          "name": "read",
+          "available": true,
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "demo-issue-45",
+      "project_id": "embedded-lab-demo",
+      "revision": 1,
+      "created_at": "2026-09-14T10:38:00Z",
+      "updated_at": "2026-09-14T10:38:00Z",
+      "identifier": "EMB-45",
+      "provider": "demo",
+      "provider_id": "demo-issue-45",
+      "provider_version": "fixture-1",
+      "title": "核对板级内存配置",
+      "description": "",
+      "native_state": "Todo",
+      "display_column": "待办",
+      "assignee": "BSP Agent",
+      "labels": [],
+      "url": "https://example.invalid/issue/EMB-45",
+      "capabilities": [
+        {
+          "name": "read",
+          "available": true,
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "demo-issue-43",
+      "project_id": "embedded-lab-demo",
+      "revision": 1,
+      "created_at": "2026-09-14T10:38:00Z",
+      "updated_at": "2026-09-14T10:38:00Z",
+      "identifier": "EMB-43",
+      "provider": "demo",
+      "provider_id": "demo-issue-43",
+      "provider_version": "fixture-1",
+      "title": "增加设备恢复测试",
+      "description": "",
+      "native_state": "Todo",
+      "display_column": "待办",
+      "assignee": "App Agent",
+      "labels": [],
+      "url": "https://example.invalid/issue/EMB-43",
+      "capabilities": [
+        {
+          "name": "read",
+          "available": true,
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "demo-issue-42",
+      "project_id": "embedded-lab-demo",
+      "revision": 1,
+      "created_at": "2026-09-14T10:38:00Z",
+      "updated_at": "2026-09-14T10:38:00Z",
+      "identifier": "EMB-42",
+      "provider": "demo",
+      "provider_id": "demo-issue-42",
+      "provider_version": "fixture-1",
+      "title": "修复显示画面偶发撕裂",
+      "description": "连续切换画面时出现局部撕裂，需要核对传输与缓冲区复用时序。",
+      "native_state": "In Progress",
+      "display_column": "进行中",
+      "assignee": "Driver Agent",
+      "labels": [
+        "调查中"
+      ],
+      "url": "https://example.invalid/issue/EMB-42",
+      "capabilities": [
+        {
+          "name": "read",
+          "available": true,
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "demo-issue-39",
+      "project_id": "embedded-lab-demo",
+      "revision": 1,
+      "created_at": "2026-09-14T10:38:00Z",
+      "updated_at": "2026-09-14T10:38:00Z",
+      "identifier": "EMB-39",
+      "provider": "demo",
+      "provider_id": "demo-issue-39",
+      "provider_version": "fixture-1",
+      "title": "完善线程与时间适配",
+      "description": "",
+      "native_state": "In Progress",
+      "display_column": "进行中",
+      "assignee": "Runtime Agent",
+      "labels": [],
+      "url": "https://example.invalid/issue/EMB-39",
+      "capabilities": [
+        {
+          "name": "read",
+          "available": true,
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "demo-issue-37",
+      "project_id": "embedded-lab-demo",
+      "revision": 1,
+      "created_at": "2026-09-14T10:38:00Z",
+      "updated_at": "2026-09-14T10:38:00Z",
+      "identifier": "EMB-37",
+      "provider": "demo",
+      "provider_id": "demo-issue-37",
+      "provider_version": "fixture-1",
+      "title": "验证录音状态切换",
+      "description": "",
+      "native_state": "In Progress",
+      "display_column": "进行中",
+      "assignee": "App Agent",
+      "labels": [],
+      "url": "https://example.invalid/issue/EMB-37",
+      "capabilities": [
+        {
+          "name": "read",
+          "available": true,
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "demo-issue-40",
+      "project_id": "embedded-lab-demo",
+      "revision": 1,
+      "created_at": "2026-09-14T10:38:00Z",
+      "updated_at": "2026-09-14T10:38:00Z",
+      "identifier": "EMB-40",
+      "provider": "demo",
+      "provider_id": "demo-issue-40",
+      "provider_version": "fixture-1",
+      "title": "确认显示缓冲策略",
+      "description": "",
+      "native_state": "Human Review",
+      "display_column": "待审阅",
+      "assignee": "贺磊",
+      "labels": [
+        "需要决定"
+      ],
+      "url": "https://example.invalid/issue/EMB-40",
+      "capabilities": [
+        {
+          "name": "read",
+          "available": true,
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "demo-issue-35",
+      "project_id": "embedded-lab-demo",
+      "revision": 1,
+      "created_at": "2026-09-14T10:38:00Z",
+      "updated_at": "2026-09-14T10:38:00Z",
+      "identifier": "EMB-35",
+      "provider": "demo",
+      "provider_id": "demo-issue-35",
+      "provider_version": "fixture-1",
+      "title": "接入串口观测",
+      "description": "",
+      "native_state": "Done",
+      "display_column": "已完成",
+      "assignee": "Feedback Agent",
+      "labels": [],
+      "url": "https://example.invalid/issue/EMB-35",
+      "capabilities": [
+        {
+          "name": "read",
+          "available": true,
+          "reason": null
+        }
+      ]
+    }
+  ],
+  "problems": [
+    {
+      "id": "DISP-12",
+      "project_id": "embedded-lab-demo",
+      "revision": 1,
+      "created_at": "2026-09-14T10:38:00Z",
+      "updated_at": "2026-09-14T10:38:00Z",
+      "issue_ids": [
+        "demo-issue-42",
+        "demo-issue-40"
+      ],
+      "component_ids": [
+        "display-driver"
+      ],
+      "symptom": "连续切换画面时出现局部撕裂。",
+      "claims": [
+        {
+          "id": "claim-buffer-reuse",
+          "statement": "缓冲区可能在传输结束前被复用。",
+          "status": "hypothesis",
+          "supporting_evidence_ids": [
+            "E-017"
+          ],
+          "contradicting_evidence_ids": [],
+          "evidence_missing": true,
+          "limitations": [
+            "事件含义与顺序仍需核验",
+            "仅有日志片段，尚未完成真机复测。"
+          ]
+        },
+        {
+          "id": "claim-refresh-rate",
+          "statement": "刷新频率导致画面撕裂。",
+          "status": "inconclusive",
+          "supporting_evidence_ids": [],
+          "contradicting_evidence_ids": [],
+          "evidence_missing": true,
+          "limitations": [
+            "调整刷新频率后现象仍存在，未支持该假设；演示无原始实验材料。"
+          ]
+        }
+      ],
+      "experiments": [
+        {
+          "id": "exp-1",
+          "occurred_at": "2026-09-14T10:12:00Z",
+          "question": "能否复现画面撕裂",
+          "procedure": "连续切换画面",
+          "observation": "连续切换画面时观察到异常。",
+          "outcome": "inconclusive",
+          "evidence_ids": [],
+          "limitations": [
+            "演示数据，未开展真实实验"
+          ]
+        },
+        {
+          "id": "exp-2",
+          "occurred_at": "2026-09-14T10:24:00Z",
+          "question": "刷新频率是否相关",
+          "procedure": "调整刷新频率",
+          "observation": "现象仍存在，未支持刷新频率假设。",
+          "outcome": "inconclusive",
+          "evidence_ids": [],
+          "limitations": [
+            "演示数据，未开展真实实验"
+          ]
+        },
+        {
+          "id": "exp-3",
+          "occurred_at": "2026-09-14T10:36:00Z",
+          "question": "传输与复用事件能否对齐",
+          "procedure": "核对事件含义与缓冲区归属",
+          "observation": "正在核对事件含义与缓冲区归属。",
+          "outcome": "inconclusive",
+          "evidence_ids": [
+            "E-017"
+          ],
+          "limitations": [
+            "演示数据，未开展真实实验"
+          ]
+        }
+      ],
+      "current_conclusion": "缓冲区可能在传输结束前被复用。",
+      "next_step": "增加完成事件标记，验证释放时机。",
+      "state": {
+        "implementation_status": "building",
+        "verification_status": "unverified",
+        "human_review_status": "unseen",
+        "agent_endorsed": false
+      },
+      "limitations": [
+        "假设 · 尚未证实"
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "id": "E-017",
+      "project_id": "embedded-lab-demo",
+      "revision": 1,
+      "created_at": "2026-09-14T10:38:00Z",
+      "updated_at": "2026-09-14T10:38:00Z",
+      "source_kind": "serial",
+      "title": "E-017 串口片段",
+      "raw": [
+        {
+          "blob_sha256": "bc84ef14c9a9adaec95b1db8187e822a7feba892e213e30bba232b22f798c915",
+          "start_byte": 0,
+          "end_byte_exclusive": 160,
+          "source_seq_start": null,
+          "source_seq_end": null
+        }
+      ],
+      "source_refs": [],
+      "binding": {
+        "repo_revision": null,
+        "worktree_patch_sha256": null,
+        "build_id": "demo-build",
+        "firmware_sha256": null,
+        "device_id": "Board-01",
+        "hardware_revision": "rev A",
+        "boot_id": "boot-07",
+        "config_sha256": null,
+        "test_profile": "demo_fixture",
+        "criteria_revision": null
+      },
+      "captured_at": null,
+      "received_at": "2026-09-14T10:36:02Z",
+      "capture_session_id": "demo-evidence-capture-017",
+      "derivation_of": [],
+      "limitations": [
+        "示例片段",
+        "事件含义与顺序仍需核验",
+        "仅有日志片段，尚未完成真机复测。",
+        "demo-build 与设备页 demo-build-12 的关联未经确认，不因同名boot合并采集会话。"
+      ],
+      "supersedes": null,
+      "content_status": "available",
+      "review_status": "unseen"
+    }
+  ],
+  "validations": [
+    {
+      "id": "demo-validation-017",
+      "project_id": "embedded-lab-demo",
+      "revision": 1,
+      "created_at": "2026-09-14T10:38:00Z",
+      "updated_at": "2026-09-14T10:38:00Z",
+      "claim_id": "claim-buffer-reuse",
+      "evidence_ids": [
+        "E-017"
+      ],
+      "criteria": "完成事件含义与缓冲区身份确定，真实目标连续切换画面复测",
+      "criteria_revision": "demo-criteria-1",
+      "binding": {
+        "repo_revision": null,
+        "worktree_patch_sha256": null,
+        "build_id": "demo-build",
+        "firmware_sha256": null,
+        "device_id": "Board-01",
+        "hardware_revision": "rev A",
+        "boot_id": "boot-07",
+        "config_sha256": null,
+        "test_profile": "demo_fixture",
+        "criteria_revision": null
+      },
+      "result": "unverified",
+      "executed_at": null,
+      "command_record_sha256": null,
+      "limitations": [
+        "尚未开展真实验证"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "decision-EMB-40",
+      "project_id": "embedded-lab-demo",
+      "revision": 1,
+      "created_at": "2026-09-14T10:38:00Z",
+      "updated_at": "2026-09-14T10:38:00Z",
+      "issue_id": "demo-issue-40",
+      "problem_case_ids": [
+        "DISP-12"
+      ],
+      "options": [
+        {
+          "id": "A",
+          "title": "延后释放",
+          "proposal": "保持单缓冲，调整释放时机",
+          "tradeoffs": [
+            "Agent 建议",
+            "保持内存占用；需确认完成事件及生命周期"
+          ],
+          "evidence_ids": [
+            "E-017"
+          ],
+          "remaining_validation": [
+            "方案 A 仍需真机验证。"
+          ]
+        },
+        {
+          "id": "B",
+          "title": "双缓冲",
+          "proposal": "隔离读写，增加内存占用",
+          "tradeoffs": [
+            "增加内存占用，需说明预算"
+          ],
+          "evidence_ids": [
+            "E-017"
+          ],
+          "remaining_validation": [
+            "真机验证",
+            "内存预算"
+          ]
+        }
+      ],
+      "status": "draft",
+      "selected_option_id": null,
+      "constraints": [
+        "优先保证稳定性，新增内存占用需说明"
+      ],
+      "plan_revision": "r13",
+      "actor": {
+        "kind": "agent",
+        "id": "demo-driver-agent",
+        "display_name": "Driver Agent"
+      },
+      "limitations": [
+        "现有证据尚不足以确认根因。"
+      ],
+      "supersedes": null
+    }
+  ],
+  "devices": [
+    {
+      "id": "Board-01",
+      "project_id": "embedded-lab-demo",
+      "revision": 1,
+      "created_at": "2026-09-14T10:38:00Z",
+      "updated_at": "2026-09-14T10:38:00Z",
+      "display_name": "Board-01",
+      "adapter": "demo",
+      "host_id": "demo-host",
+      "hardware_revision": "rev A",
+      "connection_status": "online",
+      "build_id": "demo-build-12",
+      "firmware_sha256": null,
+      "active_session_id": "demo-device-capture-12",
+      "lease": {
+        "resource_id": "demo-host:Board-01:control",
+        "owner_run_id": "demo-run-42",
+        "generation": 1,
+        "expires_at": "2026-09-14T10:45:00Z",
+        "status": "active"
+      },
+      "capabilities": [
+        {
+          "name": "read_serial",
+          "available": true,
+          "reason": null
+        },
+        {
+          "name": "run_action",
+          "available": false,
+          "reason": "Demo仅演示，不控制真实设备"
+        }
+      ]
+    },
+    {
+      "id": "Board-02",
+      "project_id": "embedded-lab-demo",
+      "revision": 1,
+      "created_at": "2026-09-14T10:38:00Z",
+      "updated_at": "2026-09-14T10:38:00Z",
+      "display_name": "Board-02",
+      "adapter": "demo",
+      "host_id": "demo-host",
+      "hardware_revision": null,
+      "connection_status": "offline",
+      "build_id": null,
+      "firmware_sha256": null,
+      "active_session_id": null,
+      "lease": null,
+      "capabilities": []
+    }
+  ],
+  "sessions": [
+    {
+      "id": "demo-evidence-capture-017",
+      "project_id": "embedded-lab-demo",
+      "revision": 1,
+      "created_at": "2026-09-14T10:38:00Z",
+      "updated_at": "2026-09-14T10:38:00Z",
+      "device_id": "Board-01",
+      "boot_id": "boot-07",
+      "build_id": "demo-build",
+      "firmware_sha256": null,
+      "started_at": "2026-09-14T10:36:00Z",
+      "ended_at": "2026-09-14T10:36:02Z",
+      "binding_status": "unknown",
+      "last_source_seq": null,
+      "gaps": []
+    },
+    {
+      "id": "demo-device-capture-12",
+      "project_id": "embedded-lab-demo",
+      "revision": 1,
+      "created_at": "2026-09-14T10:38:00Z",
+      "updated_at": "2026-09-14T10:38:00Z",
+      "device_id": "Board-01",
+      "boot_id": "boot-07",
+      "build_id": "demo-build-12",
+      "firmware_sha256": null,
+      "started_at": "2026-09-14T10:36:00Z",
+      "ended_at": null,
+      "binding_status": "unknown",
+      "last_source_seq": null,
+      "gaps": []
+    }
+  ],
+  "operations": [
+    {
+      "id": "demo-op-pause-40",
+      "project_id": "embedded-lab-demo",
+      "revision": 1,
+      "created_at": "2026-09-14T10:38:00Z",
+      "updated_at": "2026-09-14T10:38:00Z",
+      "issue_id": "demo-issue-40",
+      "action": "pause_issue",
+      "idempotency_key": "demo-pause-40",
+      "request_sha256": "799b8b3013c9fbe98923d05b62aedcd9e791c4bcea7e819653b03c48052aeb92",
+      "expected_revision": 1,
+      "actor": {
+        "kind": "human",
+        "id": "demo-ray",
+        "display_name": "贺磊"
+      },
+      "status": "applied",
+      "steps": [
+        {
+          "name": "pause_request",
+          "status": "confirmed",
+          "observed_at": "2026-09-14T10:38:00Z",
+          "detail": "已记录请求并通知相关负责人",
+          "source_ref": "fixture-only"
+        },
+        {
+          "name": "worker_stopped",
+          "status": "confirmed",
+          "observed_at": "2026-09-14T10:38:00Z",
+          "detail": "已停止相关任务执行",
+          "source_ref": "fixture-only"
+        },
+        {
+          "name": "new_plan",
+          "status": "pending",
+          "observed_at": null,
+          "detail": "待采用后按计划执行",
+          "source_ref": "fixture-only"
+        }
+      ],
+      "result_entity_id": "demo-issue-40",
+      "error_code": null
+    }
+  ],
+  "events": [
+    {
+      "event_id": "demo-event-1",
+      "project_id": "embedded-lab-demo",
+      "project_seq": 1,
+      "occurred_at": "2026-09-14T10:38:00Z",
+      "recorded_at": "2026-09-14T10:38:00Z",
+      "type": "evidence.registered",
+      "entity_type": "Evidence",
+      "entity_id": "E-017",
+      "entity_revision": 1,
+      "run_id": null,
+      "actor": {
+        "kind": "agent",
+        "id": "demo-driver-agent",
+        "display_name": "Driver Agent"
+      },
+      "payload": {
+        "plan_revision": null,
+        "decision_id": null,
+        "decision_sha256": null,
+        "detail": "仅演示数据"
+      }
+    }
+  ],
+  "display": {
+    "issue_relative_times": {
+      "EMB-46": "1 小时前",
+      "EMB-45": "2 小时前",
+      "EMB-43": "3 小时前",
+      "EMB-42": "2 分钟前",
+      "EMB-39": "8 分钟前",
+      "EMB-37": "12 分钟前",
+      "EMB-40": "10 分钟前",
+      "EMB-35": "1 天前"
+    },
+    "column_counts": {
+      "待办": 3,
+      "进行中": 3,
+      "待审阅": 1,
+      "已完成": 1
+    },
+    "runtime_counts": {
+      "running": 3,
+      "review": 1,
+      "paused": 1
+    },
+    "default_candidate_option": "A",
+    "decision_comparison": {
+      "current": {
+        "revision": "r12",
+        "buffer": "单缓冲",
+        "lifecycle": "提交后复用"
+      },
+      "proposed": {
+        "revision": "r13",
+        "buffer": "单缓冲",
+        "lifecycle": "完成后释放"
+      }
+    },
+    "evidence_log": "fixtures/raw/E-017.txt",
+    "evidence_highlight_line": 3,
+    "device_log": "fixtures/raw/Board-01-serial.txt",
+    "device_highlight_line": 5,
+    "image_status": "尚未连接图像源",
+    "dump_status": "本次会话暂无故障记录",
+    "impact": [
+      {
+        "component": "显示驱动",
+        "state": "需调整"
+      },
+      {
+        "component": "显示服务",
+        "state": "需重验"
+      },
+      {
+        "component": "录音链路",
+        "state": "可继续"
+      }
+    ]
+  }
+}

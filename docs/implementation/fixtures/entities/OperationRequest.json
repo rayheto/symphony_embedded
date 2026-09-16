@@ -1,0 +1,14 @@
+{
+  "project_id": "embedded-lab-demo",
+  "idempotency_key": "example-adoption-001",
+  "expected_revision": 1,
+  "action": "adopt_decision",
+  "payload": {
+    "issue_id": "demo-issue-40",
+    "provider_version": "fixture-1",
+    "decision_id": "decision-EMB-40",
+    "option_id": "A",
+    "resume_after_apply": false,
+    "resume_target_state": null
+  }
+}

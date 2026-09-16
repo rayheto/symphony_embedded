@@ -1,0 +1,36 @@
+/* Symphony Soft Glass v1.0 — project tokens, not Apple official values */
+:root {
+  --sg-canvas: #F5F5F7;
+  --sg-surface: #FFFFFF;
+  --sg-inset: #EEEEF2;
+  --sg-border: #DEDEE3;
+  --sg-text: #1D1D1F;
+  --sg-secondary: #686870;
+  --sg-accent: #0066CC;
+  --sg-accent-tint: #EAF3FF;
+  --sg-success: #247A3C;
+  --sg-success-tint: #EDF7EF;
+  --sg-warning: #946000;
+  --sg-warning-tint: #FFF4DB;
+  --sg-review: #B04458;
+  --sg-review-tint: #FCEFF2;
+  --sg-done: #6554B8;
+  --sg-done-tint: #F1EEFA;
+  --sg-font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --sg-radius-control: 10px;
+  --sg-radius-card: 16px;
+  --sg-radius-panel: 20px;
+  --sg-shadow: 0 2px 10px rgba(29,29,31,.045), 0 0 0 1px rgba(29,29,31,.035);
+  --sg-motion: 160ms;
+}
+.sg-canvas { background:var(--sg-canvas); color:var(--sg-text); font:15px/1.5 var(--sg-font); }
+.sg-card { background:var(--sg-surface); border-radius:var(--sg-radius-card); padding:16px; box-shadow:var(--sg-shadow); }
+.sg-navigation { background:rgba(255,255,255,.88); backdrop-filter:blur(16px); border-bottom:1px solid var(--sg-border); }
+.sg-log { background:var(--sg-inset); color:var(--sg-text); font:13px/1.65 ui-monospace,Consolas,monospace; }
+.sg-primary { background:var(--sg-accent); color:white; border:0; border-radius:10px; min-height:36px; padding:8px 16px; }
+.sg-warning { background:var(--sg-warning-tint); color:var(--sg-warning); }
+.sg-canvas :focus-visible { outline:2px solid var(--sg-accent); outline-offset:3px; }
+@supports not (backdrop-filter:blur(1px)) { .sg-navigation { background:white; } }
+@media (prefers-reduced-transparency:reduce) { .sg-navigation { background:white; backdrop-filter:none; } }
+@media (prefers-reduced-motion:reduce) { .sg-canvas * { transition:none!important; animation:none!important; } }
+

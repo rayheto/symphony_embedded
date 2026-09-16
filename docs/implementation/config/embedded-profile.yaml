@@ -1,0 +1,25 @@
+schema_version: "1.0"
+name: embedded-generic
+language_os_neutral: true
+project_repository: null # M0: actual project URL, distinct from Symphony host repo
+layers:
+  L0: {name: Hardware, owns: [hardware_facts, electrical_timing, schematic], paths: []}
+  L1: {name: OS_BSP, owns: [board_config, scheduler, device_model, build_wiring], paths: []}
+  L2: {name: Driver_Hardware_Access, owns: [registers, DMA, ISR, cache, framebuffer], paths: []}
+  L3: {name: Runtime_OSAL, owns: [thread_semantics, time_semantics, sync_semantics, allocator], paths: []}
+  L4: {name: Application, owns: [state_machine, services, UI_model, business_logic], paths: []}
+crosscutting: [feedback, observability]
+allowed_capability_paths:
+  os: [L4, L3, L1]
+  device: [L4, platform_port, L2, L1, L0]
+  bare_metal_device: [L4, platform_port, L2, L0]
+forbidden_upward_exposure: [register_pointer, DMA_descriptor, ISR_context, unwrapped_OS_device_pointer]
+runtime_contract: [upstream_semantics, shared_tests, host_run, target_build, target_run]
+shared_path_owner: coordinator
+unmapped_path_policy: report_unknown_and_resolve_from_source
+technical_binding:
+  languages: []
+  os: null
+  board: null
+  toolchain: null
+# M0 fills real paths/OS/language mapping. These are responsibility rules, not an import-chain compiler.
