@@ -92,6 +92,16 @@ defmodule SymphonyElixir.Devices.Manager do
   @spec sessions(GenServer.server(), String.t() | nil) :: [map()]
   def sessions(server \\ __MODULE__, device_key \\ nil), do: GenServer.call(server, {:sessions, device_key}, 30_000)
 
+  @doc """
+  The recent rows a live capture has produced for one device.
+
+  Reading them does not touch the capture: the page can pause scrolling without
+  pausing the device.
+  """
+  @spec recent(GenServer.server(), String.t(), pos_integer()) :: [map()]
+  def recent(server \\ __MODULE__, device_key, limit \\ 500),
+    do: GenServer.call(server, {:recent, device_key, limit}, 30_000)
+
   # ------------------------------------------------------------------
   # GenServer
   # ------------------------------------------------------------------
@@ -219,6 +229,13 @@ defmodule SymphonyElixir.Devices.Manager do
       {:reply, run_action(action, device, opts), state}
     else
       {:error, code, details} -> {:reply, {:error, code, details}, state}
+    end
+  end
+
+  def handle_call({:recent, device_key, limit}, _from, state) do
+    case Map.get(state.sessions, device_key) do
+      nil -> {:reply, [], state}
+      session -> {:reply, SerialPort.recent(session.pid, limit), state}
     end
   end
 

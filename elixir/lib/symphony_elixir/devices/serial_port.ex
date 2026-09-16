@@ -18,6 +18,9 @@ defmodule SymphonyElixir.Devices.SerialPort do
   @chunk_max_bytes 8 * 1024 * 1024
   @chunk_max_age_ms 60_000
   @recent_limit 5_000
+  # Data notifications are coalesced to this interval so a burst cannot flood
+  # the page with one message per frame.
+  @notice_interval_ms 100
   @default_timeout 10_000
   # Shorter than the caller's own timeout, so a silent helper produces a real
   # error rather than a bare GenServer.call exit.
@@ -48,7 +51,9 @@ defmodule SymphonyElixir.Devices.SerialPort do
       :recent,
       :status,
       :gaps,
-      :pending
+      :pending,
+      :last_notice_ms,
+      :pending_notice_seq
     ]
   end
 
@@ -232,7 +237,7 @@ defmodule SymphonyElixir.Devices.SerialPort do
   # chunk even when no further bytes arrive.
   def handle_info(:chunk_tick, %{status: :capturing} = state) do
     schedule_chunk_tick()
-    {:noreply, maybe_commit_chunk(state)}
+    {:noreply, state |> maybe_commit_chunk() |> flush_notice()}
   end
 
   def handle_info(:chunk_tick, state), do: {:noreply, state}
@@ -463,7 +468,27 @@ defmodule SymphonyElixir.Devices.SerialPort do
     }
 
     recent = Enum.take([row | state.recent], @recent_limit)
-    %{state | recent: recent}
+    state = %{state | recent: recent}
+
+    # A burst produces many frames; the page only needs to know that something
+    # changed, so data notifications are coalesced.
+    now = now_ms()
+
+    if is_nil(state.last_notice_ms) or now - state.last_notice_ms >= @notice_interval_ms do
+      notify(%{state | last_notice_ms: now, pending_notice_seq: nil}, {:serial, {:data, seq}})
+    else
+      %{state | pending_notice_seq: seq}
+    end
+  end
+
+  # Coalescing can swallow the *last* frame of a burst, which would leave the
+  # page stale until something else happened. The tick is the trailing edge: it
+  # delivers the withheld notification. No interval check is needed here — the
+  # tick period is already an order of magnitude longer than the window.
+  defp flush_notice(%{pending_notice_seq: nil} = state), do: state
+
+  defp flush_notice(%{pending_notice_seq: seq} = state) do
+    notify(%{state | pending_notice_seq: nil, last_notice_ms: now_ms()}, {:serial, {:data, seq}})
   end
 
   # The display text is a *view*: it is derived from the raw bytes so invalid

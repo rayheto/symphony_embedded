@@ -6,6 +6,7 @@ defmodule SymphonyElixirWeb.WorkbenchLiveTest do
   import Phoenix.ConnTest
   import Phoenix.LiveViewTest
 
+  alias SymphonyElixir.Devices.Manager
   alias SymphonyElixir.Experience.{DemoAdapter, Store}
 
   @endpoint SymphonyElixirWeb.Endpoint
@@ -670,6 +671,319 @@ defmodule SymphonyElixirWeb.WorkbenchLiveTest do
         },
         %{kind: "human", id: "local-operator", display_name: "本机操作者"}
       )
+  end
+
+  describe "devices page" do
+    defp start_devices_manager(context, devices_yaml) do
+      if pid = Process.whereis(Manager), do: GenServer.stop(pid)
+
+      path = Path.join(context.root, "devices.yaml")
+      File.write!(path, devices_yaml)
+
+      # `restart: :transient` lets one test take the manager down deliberately.
+      start_supervised!(%{id: Manager, start: {Manager, :start_link, [[config_path: path]]}, restart: :transient})
+
+      on_exit(fn -> if pid = Process.whereis(Manager), do: GenServer.stop(pid) end)
+    end
+
+    test "a host with no registered devices says so instead of showing a blank table", context do
+      start_devices_manager(context, "schema_version: \"1.0\"\nhost_id: \"test-host\"\n")
+
+      {:ok, _view, html} = live(build_conn(), "/workbench/devices")
+
+      assert html =~ "宿主没有登记任何设备"
+      assert html =~ "devices.yaml"
+    end
+
+    test "lists the registered devices and shows one in detail", context do
+      start_devices_manager(context, """
+      schema_version: "1.0"
+      host_id: "test-host"
+      devices:
+        - key: "board-a"
+          display_name: "开发板 A"
+          adapter: "serial"
+          port: "/dev/symphony-does-not-exist"
+          hardware_revision: "rev A"
+      actions: []
+      """)
+
+      {:ok, view, html} = live(build_conn(), "/workbench/devices")
+
+      assert html =~ "开发板 A"
+      assert html =~ "rev A"
+      assert html =~ "unknown"
+
+      view |> element("tr[phx-value-device='board-a']") |> render_click()
+
+      assert render(view) =~ "/dev/symphony-does-not-exist"
+      assert render(view) =~ "在线只表示连接可用，不代表验证通过"
+      assert render(view) =~ "真机复测未完成"
+    end
+
+    test "refresh probes the port and reports it honestly", context do
+      start_devices_manager(context, """
+      schema_version: "1.0"
+      host_id: "test-host"
+      devices:
+        - key: "board-a"
+          display_name: "开发板 A"
+          port: "/dev/symphony-does-not-exist"
+      actions: []
+      """)
+
+      {:ok, view, _html} = live(build_conn(), "/workbench/devices")
+
+      html = view |> element("button", "刷新") |> render_click()
+
+      assert html =~ "offline"
+    end
+
+    test "the serial tab starts empty and refuses a device without a port", context do
+      start_devices_manager(context, """
+      schema_version: "1.0"
+      host_id: "test-host"
+      devices:
+        - key: "board-a"
+          display_name: "开发板 A"
+      actions: []
+      """)
+
+      {:ok, view, _html} = live(build_conn(), "/workbench/devices?device=board-a&tab=serial")
+
+      assert render(view) =~ "还没有采集到的原始字节。"
+
+      html = view |> element("button", "开始采集") |> render_click()
+
+      assert html =~ "无法开始采集"
+      assert html =~ "device_has_no_port"
+    end
+
+    test "pausing the scroll keeps the capture running", context do
+      start_devices_manager(context, """
+      schema_version: "1.0"
+      host_id: "test-host"
+      devices:
+        - key: "board-a"
+          display_name: "开发板 A"
+          port: "/dev/symphony-does-not-exist"
+      actions: []
+      """)
+
+      {:ok, view, _html} = live(build_conn(), "/workbench/devices?device=board-a&tab=serial")
+
+      html = view |> element("button", "暂停滚动") |> render_click()
+
+      assert html =~ "已暂停滚动"
+      assert html =~ "采集与写盘仍在继续"
+      assert html =~ "恢复滚动"
+    end
+
+    test "a real capture shows the bytes it read and stops on request", context do
+      peer = open_pty_peer()
+
+      start_devices_manager(context, """
+      schema_version: "1.0"
+      host_id: "test-host"
+      devices:
+        - key: "board-a"
+          display_name: "开发板 A"
+          port: "#{peer.path}"
+          action_ids: ["reboot"]
+      actions:
+        - tool_id: "reboot"
+          absolute_executable: "/bin/echo"
+          fixed_argv_template: ["rebooting"]
+          required_capability: "control"
+      """)
+
+      {:ok, view, _html} = live(build_conn(), "/workbench/devices?device=board-a&tab=serial")
+
+      html = view |> element("button", "开始采集") |> render_click()
+
+      assert html =~ "采集已开始"
+      assert html =~ "停止采集"
+
+      write_to_peer(peer, "boot ok\n")
+      Process.sleep(300)
+      view |> element("button", "暂停滚动") |> render_click()
+
+      rendered = render(view)
+      assert rendered =~ "boot ok"
+      assert rendered =~ "显示文本是原始字节的派生视图" or rendered =~ "已暂停滚动"
+
+      # An unrelated message must not disturb the page.
+      send(view.pid, :unrelated)
+      send(view.pid, {:serial, {:state, :connected, "port opened"}})
+      Process.sleep(50)
+
+      html = view |> element("button", "停止采集") |> render_click()
+      assert html =~ "物理动作的停止需另行确认"
+
+      Port.command(peer.port, "quit\n")
+    end
+
+    test "refreshing a selected device reports the probe it ran", context do
+      start_devices_manager(context, """
+      schema_version: "1.0"
+      host_id: "test-host"
+      devices:
+        - key: "board-a"
+          display_name: "开发板 A"
+          port: "/dev/symphony-does-not-exist"
+      actions: []
+      """)
+
+      {:ok, view, _html} = live(build_conn(), "/workbench/devices?device=board-a")
+
+      html = view |> element("button", "刷新") |> render_click()
+
+      assert html =~ "offline"
+      assert html =~ "开发板 A"
+    end
+
+    test "a capture loop that is gone leaves the page readable", context do
+      start_devices_manager(context, """
+      schema_version: "1.0"
+      host_id: "test-host"
+      devices:
+        - key: "board-a"
+          display_name: "开发板 A"
+          port: "/dev/symphony-does-not-exist"
+      actions: []
+      """)
+
+      GenServer.stop(Process.whereis(Manager))
+
+      # A device manager that is not running is reported as unavailable rather
+      # than as "this host has no devices".
+      {:ok, _view, html} = live(build_conn(), "/workbench/devices?device=board-a&tab=serial")
+
+      assert html =~ "设备管理未运行"
+      assert html =~ "其它页面不受影响"
+    end
+
+    test "keeps rendering a live capture view after the capture loop dies", context do
+      peer = open_pty_peer()
+
+      start_devices_manager(context, """
+      schema_version: "1.0"
+      host_id: "test-host"
+      devices:
+        - key: "board-a"
+          display_name: "开发板 A"
+          port: "#{peer.path}"
+      actions: []
+      """)
+
+      {:ok, view, _html} = live(build_conn(), "/workbench/devices?device=board-a&tab=serial")
+      view |> element("button", "开始采集") |> render_click()
+
+      GenServer.stop(Process.whereis(Manager))
+
+      # A refresh tick after the manager died must not take the page down.
+      send(view.pid, {:serial, {:state, :disconnected, "manager gone"}})
+      Process.sleep(50)
+
+      assert render(view) =~ "开发板 A"
+      assert render(view) =~ "还没有采集到的原始字节。"
+
+      Port.command(peer.port, "quit\n")
+    end
+
+    test "a stop request the manager refuses is reported", context do
+      peer = open_pty_peer()
+
+      start_devices_manager(context, """
+      schema_version: "1.0"
+      host_id: "test-host"
+      devices:
+        - key: "board-a"
+          display_name: "开发板 A"
+          port: "#{peer.path}"
+      actions: []
+      """)
+
+      {:ok, view, _html} = live(build_conn(), "/workbench/devices?device=board-a&tab=serial")
+      view |> element("button", "开始采集") |> render_click()
+      assert render(view) =~ "停止采集"
+
+      # The page still shows the session it started; the manager no longer has
+      # it, so the stop must be reported as refused rather than as stopped.
+      :sys.replace_state(Manager, fn state -> %{state | sessions: %{}} end)
+
+      html = view |> element("button", "停止采集") |> render_click()
+
+      assert html =~ "无法停止采集"
+      assert html =~ "no_capture_session"
+
+      Port.command(peer.port, "quit\n")
+    end
+
+    test "shows who holds a device lease", context do
+      start_devices_manager(context, """
+      schema_version: "1.0"
+      host_id: "test-host"
+      devices:
+        - key: "board-a"
+          display_name: "开发板 A"
+          port: "/dev/symphony-does-not-exist"
+      actions: []
+      """)
+
+      {:ok, _lease} = Manager.acquire_lease(Manager, "board-a", "run-7")
+
+      {:ok, _view, html} = live(build_conn(), "/workbench/devices")
+
+      assert html =~ "run-7"
+    end
+
+    defp open_pty_peer do
+      port =
+        Port.open({:spawn_executable, System.find_executable("python3")}, [
+          :binary,
+          :exit_status,
+          :use_stdio,
+          :stream,
+          line: 4096,
+          args: [Path.expand("../support/pty_peer.py", __DIR__)]
+        ])
+
+      %{port: port, path: wait_for_peer_port(port)}
+    end
+
+    defp wait_for_peer_port(port) do
+      receive do
+        {^port, {:data, {:eol, "PORT " <> path}}} -> String.trim(path)
+        {^port, {:data, {:noeol, "PORT " <> path}}} -> String.trim(path)
+      after
+        5_000 -> flunk("PTY peer did not report a port")
+      end
+    end
+
+    defp write_to_peer(peer, bytes) do
+      Port.command(peer.port, ["write ", Base.encode64(bytes), "\n"])
+
+      receive do
+        {_port, {:data, {:eol, "OK"}}} -> :ok
+        {_port, {:data, {:noeol, "OK"}}} -> :ok
+      after
+        5_000 -> flunk("PTY peer did not acknowledge")
+      end
+    end
+
+    test "the devices page reports a disabled workbench" do
+      write_workflow_file!(Workflow.workflow_file_path(),
+        tracker_kind: "memory",
+        tracker_api_token: nil,
+        tracker_project_slug: nil,
+        workbench: %{"enabled" => false, "mode" => "demo"}
+      )
+
+      {:ok, _view, html} = live(build_conn(), "/workbench/devices")
+
+      assert html =~ "工作台未启用"
+    end
   end
 
   test "the workbench reports a disabled configuration instead of a blank board" do

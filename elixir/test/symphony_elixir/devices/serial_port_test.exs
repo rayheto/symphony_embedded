@@ -140,6 +140,8 @@ defmodule SymphonyElixir.Devices.SerialPortTest do
       peer_write(peer, <<0xFF, 0xFE, 0x0A>>)
       Process.sleep(200)
 
+      assert_receive {:serial, {:data, _seq}}, 1_000
+
       rows = SerialPort.recent(server)
       assert rows != []
 
@@ -210,6 +212,30 @@ defmodule SymphonyElixir.Devices.SerialPortTest do
     defp feed(server, frame) do
       send(server, {helper_ref(server), {:data, {:eol, Jason.encode!(frame)}}})
       Process.sleep(50)
+    end
+
+    # Two frames inside one coalescing window: the second notice is withheld, and
+    # the tick is what delivers it. Without that trailing edge the page would sit
+    # on stale bytes until something else happened to it.
+    defp feed_now(server, frame) do
+      send(server, {helper_ref(server), {:data, {:eol, Jason.encode!(frame)}}})
+    end
+
+    test "coalesces a burst and still reports the last frame", context do
+      %{peer: peer, port: server} = start_capture(context)
+      assert {:ok, _detail} = await_status(server, :connected)
+
+      feed_now(server, data_frame(1, "one"))
+      feed_now(server, data_frame(2, "two"))
+
+      assert_receive {:serial, {:data, 1}}, 1_000
+      refute_received {:serial, {:data, 2}}
+
+      # The chunk tick is the only thing that runs on a quiet session.
+      assert_receive {:serial, {:data, 2}}, 2_500
+      assert SerialPort.recent(server) |> Enum.map(& &1["source_seq"]) == [1, 2]
+
+      peer_quit(peer)
     end
 
     test "records a gap the helper reports and tells the owner", context do

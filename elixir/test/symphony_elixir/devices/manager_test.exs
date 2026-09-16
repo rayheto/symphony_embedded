@@ -195,6 +195,9 @@ defmodule SymphonyElixir.Devices.ManagerTest do
       assert {:ok, _} = Manager.probe("board-a")
       assert Manager.sessions() == []
 
+      assert Manager.recent("board-a") == []
+      assert Manager.recent(Manager, "board-a") == []
+
       {:ok, lease} = Manager.acquire_lease("board-a", "run-1")
       assert {:ok, _} = Manager.renew_lease("board-a", "run-1", lease["generation"])
       assert {:ok, _} = Manager.release_lease("board-a", "run-1", lease["generation"])
