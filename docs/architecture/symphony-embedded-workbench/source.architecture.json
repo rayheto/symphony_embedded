@@ -36,7 +36,7 @@
       "type": "external",
       "label": "Tracker（Linear）",
       "sublabel": "Issue 真值",
-      "pos": [38, 300],
+      "pos": [38, 280],
       "size": [140, 60],
       "sources": [{ "path": "elixir/lib/symphony_elixir/linear/client.ex", "label": "provider client" }]
     },
@@ -45,7 +45,7 @@
       "type": "backend",
       "label": "Orchestrator",
       "sublabel": "单点派发 / 重试 / 对账",
-      "pos": [238, 300],
+      "pos": [238, 280],
       "size": [150, 62],
       "tag": "调度权威",
       "sources": [{ "path": "elixir/lib/symphony_elixir/orchestrator.ex", "label": "scheduler" }]
@@ -55,7 +55,7 @@
       "type": "backend",
       "label": "AgentRunner",
       "sublabel": "workspace + 轮次",
-      "pos": [448, 210],
+      "pos": [448, 190],
       "size": [140, 62],
       "sources": [{ "path": "elixir/lib/symphony_elixir/agent_runner.ex", "label": "run loop" }]
     },
@@ -64,7 +64,7 @@
       "type": "external",
       "label": "Codex app-server",
       "sublabel": "turn 循环",
-      "pos": [448, 400],
+      "pos": [448, 368],
       "size": [140, 62],
       "sources": [{ "path": "elixir/lib/symphony_elixir/codex/app_server.ex", "label": "app-server" }]
     },
@@ -73,7 +73,7 @@
       "type": "backend",
       "label": "工程工具",
       "sublabel": "report / read / plan / import",
-      "pos": [648, 400],
+      "pos": [648, 368],
       "size": [150, 62],
       "tag": "写入边界",
       "sources": [
@@ -86,7 +86,7 @@
       "type": "database",
       "label": "Experience.Store",
       "sublabel": "journal + CAS blobs",
-      "pos": [858, 400],
+      "pos": [858, 368],
       "size": [150, 62],
       "tag": "不可变记录",
       "sources": [{ "path": "elixir/lib/symphony_elixir/experience/store.ex", "label": "append-only" }]
@@ -96,7 +96,7 @@
       "type": "backend",
       "label": "Devices.Manager",
       "sublabel": "登记 / 租约 / 采集",
-      "pos": [648, 600],
+      "pos": [648, 545],
       "size": [150, 62],
       "sources": [{ "path": "elixir/lib/symphony_elixir/devices/manager.ex", "label": "device owner" }]
     },
@@ -105,7 +105,7 @@
       "type": "backend",
       "label": "SerialPort + helper",
       "sublabel": "JSONL / 原始字节",
-      "pos": [858, 600],
+      "pos": [858, 545],
       "size": [150, 62],
       "sources": [{ "path": "elixir/lib/symphony_elixir/devices/serial_port.ex", "label": "capture" }]
     },
@@ -114,7 +114,7 @@
       "type": "external",
       "label": "目标板",
       "sublabel": "串口 / 图像源",
-      "pos": [1068, 600],
+      "pos": [1068, 545],
       "size": [124, 60],
       "tag": "未接入"
     },
@@ -123,7 +123,7 @@
       "type": "frontend",
       "label": "工作台页面",
       "sublabel": "看板 / 设备 / 审阅 / 架构",
-      "pos": [238, 90],
+      "pos": [238, 70],
       "size": [200, 62],
       "sources": [{ "path": "elixir/lib/symphony_elixir_web/router.ex", "label": "workbench routes" }]
     }
@@ -133,7 +133,7 @@
       "kind": "region",
       "label": "Symphony 宿主进程",
       "wraps": ["orchestrator", "agent_runner", "agent_tools", "store", "device_manager", "serial_port", "workbench"],
-      "pad": 24
+      "pad": 18
     }
   ],
   "connections": [

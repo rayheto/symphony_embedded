@@ -5004,7 +5004,7 @@
     <!-- Main Diagram -->
     <div class="diagram-container" data-detail-level="read"
          data-preset-badge-editorial-plate="ARCHIFY / 图版 04">
-      <svg viewBox="0 0 1232 750" role="img" lang="zh-CN" aria-labelledby="archify-diagram-title archify-diagram-description" data-preset="classic" data-quality-profile="showcase">
+      <svg viewBox="0 0 1232 695" role="img" lang="zh-CN" aria-labelledby="archify-diagram-title archify-diagram-description" data-preset="classic" data-quality-profile="showcase">
         <title id="archify-diagram-title">Symphony 嵌入式工作台</title>
         <desc id="archify-diagram-description">由 Archify 生成的架构图。</desc>
         <!-- Definitions -->
@@ -5030,208 +5030,208 @@
         <rect width="100%" height="100%" fill="url(#grid)" />
 
         <!-- Boundaries (behind everything) -->
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="region" data-composition-frame-id="0" data-composition-frame-label="Symphony 宿主进程" x="214" y="66" width="818" height="616" rx="12" class="c-region" stroke-width="1"/>
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="region" data-composition-frame-id="0" data-composition-frame-label="Symphony 宿主进程" x="220" y="46" width="806" height="581" rx="12" class="c-region" stroke-width="1"/>
 
         <!-- Connection paths (before components for correct z-order) -->
-        <path data-edge-from="tracker" data-edge-to="orchestrator" data-edge-label="轮询 Issue" data-edge-key="0" data-edge-id="rel_poll" data-composition-points="178,330;238,330" d="M 178 330 L 238 330" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="orchestrator" data-edge-to="agent_runner" data-edge-label="派发" data-edge-key="1" data-edge-id="rel_dispatch" data-composition-points="388,331;418,331;418,241;448,241" d="M 388 331 L 410 331 Q 418 331 418 323 L 418 249 Q 418 241 426 241 L 448 241" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="agent_runner" data-edge-to="codex" data-edge-label="app-server" data-edge-key="2" data-edge-id="rel_appserver" data-composition-points="518,272;518,400" d="M 518 272 L 518 400" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="codex" data-edge-to="agent_tools" data-edge-label="工具调用" data-edge-key="3" data-edge-id="rel_toolcall" data-composition-points="588,431;648,431" d="M 588 431 L 648 431" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="agent_tools" data-edge-to="store" data-edge-label="先落盘再回执" data-edge-key="4" data-edge-id="rel_append" data-composition-points="798,431;858,431" d="M 798 431 L 858 431" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="workbench" data-edge-to="store" data-edge-label="读取投影" data-edge-key="5" data-edge-id="rel_read" data-composition-points="438,121;834,121;834,431;858,431" d="M 438 121 L 826 121 Q 834 121 834 129 L 834 423 Q 834 431 842 431 L 858 431" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="workbench" data-edge-to="orchestrator" data-edge-label="运行快照" data-edge-key="6" data-edge-id="rel_snapshot" data-composition-points="338,152;338,226;313,226;313,300" d="M 338 152 L 338 218 Q 338 226 330 226 L 321 226 Q 313 226 313 234 L 313 300" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
-        <path data-edge-from="device_manager" data-edge-to="serial_port" data-edge-label="采集会话" data-edge-key="7" data-edge-id="rel_capture" data-composition-points="798,631;858,631" d="M 798 631 L 858 631" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="serial_port" data-edge-to="board" data-edge-label="原始字节" data-edge-key="8" data-edge-id="rel_bytes" data-composition-points="1008,631;1068,631" d="M 1008 631 L 1068 631" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
-        <path data-edge-from="serial_port" data-edge-to="store" data-edge-label="chunk 落盘" data-edge-key="9" data-edge-id="rel_chunk" data-composition-points="933,600;933,462" d="M 933 600 L 933 462" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="tracker" data-edge-to="orchestrator" data-edge-label="轮询 Issue" data-edge-key="0" data-edge-id="rel_poll" data-composition-points="178,310;238,310" d="M 178 310 L 238 310" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="orchestrator" data-edge-to="agent_runner" data-edge-label="派发" data-edge-key="1" data-edge-id="rel_dispatch" data-composition-points="388,311;418,311;418,221;448,221" d="M 388 311 L 410 311 Q 418 311 418 303 L 418 229 Q 418 221 426 221 L 448 221" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="agent_runner" data-edge-to="codex" data-edge-label="app-server" data-edge-key="2" data-edge-id="rel_appserver" data-composition-points="518,252;518,368" d="M 518 252 L 518 368" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="codex" data-edge-to="agent_tools" data-edge-label="工具调用" data-edge-key="3" data-edge-id="rel_toolcall" data-composition-points="588,399;648,399" d="M 588 399 L 648 399" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="agent_tools" data-edge-to="store" data-edge-label="先落盘再回执" data-edge-key="4" data-edge-id="rel_append" data-composition-points="798,399;858,399" d="M 798 399 L 858 399" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="workbench" data-edge-to="store" data-edge-label="读取投影" data-edge-key="5" data-edge-id="rel_read" data-composition-points="438,101;834,101;834,399;858,399" d="M 438 101 L 826 101 Q 834 101 834 109 L 834 391 Q 834 399 842 399 L 858 399" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="workbench" data-edge-to="orchestrator" data-edge-label="运行快照" data-edge-key="6" data-edge-id="rel_snapshot" data-composition-points="338,132;338,206;313,206;313,280" d="M 338 132 L 338 198 Q 338 206 330 206 L 321 206 Q 313 206 313 214 L 313 280" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
+        <path data-edge-from="device_manager" data-edge-to="serial_port" data-edge-label="采集会话" data-edge-key="7" data-edge-id="rel_capture" data-composition-points="798,576;858,576" d="M 798 576 L 858 576" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="serial_port" data-edge-to="board" data-edge-label="原始字节" data-edge-key="8" data-edge-id="rel_bytes" data-composition-points="1008,576;1068,576" d="M 1008 576 L 1068 576" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
+        <path data-edge-from="serial_port" data-edge-to="store" data-edge-label="chunk 落盘" data-edge-key="9" data-edge-id="rel_chunk" data-composition-points="933,545;933,430" d="M 933 545 L 933 430" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
 
         <!-- Components -->
         <g id="node-tracker" data-node-id="tracker" data-node-label="Tracker（Linear）" tabindex="0" role="button" aria-label="聚焦Tracker（Linear），Issue 真值, 架构组件" aria-pressed="false" data-node-kind="external" data-node-sublabel="Issue 真值" data-node-context="架构组件">
           <title>Tracker（Linear） · Issue 真值 · 架构组件</title>
-          <rect x="38" y="300" width="140" height="60" rx="6" class="c-mask"/>
-          <rect x="38" y="300" width="140" height="60" rx="6" class="c-external" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(44 306) scale(0.6875)">
+          <rect x="38" y="280" width="140" height="60" rx="6" class="c-mask"/>
+          <rect x="38" y="280" width="140" height="60" rx="6" class="c-external" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(44 286) scale(0.6875)">
             <rect x="2.5" y="5" width="8.5" height="8" rx="1.5"/>
             <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="108" y="328" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Tracker（Linear）</text>
-        <text data-detail="context" x="108" y="344" class="t-muted" font-size="9" text-anchor="middle">Issue 真值</text>
+          <text data-node-label="" data-detail-anchor="" x="108" y="308" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Tracker（Linear）</text>
+        <text data-detail="context" x="108" y="324" class="t-muted" font-size="9" text-anchor="middle">Issue 真值</text>
         </g>
 
         <g id="node-orchestrator" data-node-id="orchestrator" data-node-label="Orchestrator" tabindex="0" role="button" aria-label="聚焦Orchestrator，单点派发 / 重试 / 对账, Symphony 宿主进程" aria-pressed="false" data-node-kind="backend" data-node-sublabel="单点派发 / 重试 / 对账" data-node-tag="调度权威" data-node-context="Symphony 宿主进程">
           <title>Orchestrator · 单点派发 / 重试 / 对账 · Symphony 宿主进程 · 调度权威</title>
-          <rect x="238" y="300" width="150" height="62" rx="6" class="c-mask"/>
-          <rect x="238" y="300" width="150" height="62" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(244 306) scale(0.6875)">
+          <rect x="238" y="280" width="150" height="62" rx="6" class="c-mask"/>
+          <rect x="238" y="280" width="150" height="62" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(244 286) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="313" y="329" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Orchestrator</text>
-        <text data-detail="context" x="313" y="345" class="t-muted" font-size="9" text-anchor="middle">单点派发 / 重试 / 对账</text>
-        <text data-detail="fine" x="313" y="354" class="t-backend" font-size="7" text-anchor="middle">调度权威</text>
+          <text data-node-label="" data-detail-anchor="" x="313" y="309" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Orchestrator</text>
+        <text data-detail="context" x="313" y="325" class="t-muted" font-size="9" text-anchor="middle">单点派发 / 重试 / 对账</text>
+        <text data-detail="fine" x="313" y="334" class="t-backend" font-size="7" text-anchor="middle">调度权威</text>
         </g>
 
         <g id="node-agent_runner" data-node-id="agent_runner" data-node-label="AgentRunner" tabindex="0" role="button" aria-label="聚焦AgentRunner，workspace + 轮次, Symphony 宿主进程" aria-pressed="false" data-node-kind="backend" data-node-sublabel="workspace + 轮次" data-node-context="Symphony 宿主进程">
           <title>AgentRunner · workspace + 轮次 · Symphony 宿主进程</title>
-          <rect x="448" y="210" width="140" height="62" rx="6" class="c-mask"/>
-          <rect x="448" y="210" width="140" height="62" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(454 216) scale(0.6875)">
+          <rect x="448" y="190" width="140" height="62" rx="6" class="c-mask"/>
+          <rect x="448" y="190" width="140" height="62" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(454 196) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="518" y="239" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">AgentRunner</text>
-        <text data-detail="context" x="518" y="255" class="t-muted" font-size="9" text-anchor="middle">workspace + 轮次</text>
+          <text data-node-label="" data-detail-anchor="" x="518" y="219" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">AgentRunner</text>
+        <text data-detail="context" x="518" y="235" class="t-muted" font-size="9" text-anchor="middle">workspace + 轮次</text>
         </g>
 
         <g id="node-codex" data-node-id="codex" data-node-label="Codex app-server" tabindex="0" role="button" aria-label="聚焦Codex app-server，turn 循环, 架构组件" aria-pressed="false" data-node-kind="external" data-node-sublabel="turn 循环" data-node-context="架构组件">
           <title>Codex app-server · turn 循环 · 架构组件</title>
-          <rect x="448" y="400" width="140" height="62" rx="6" class="c-mask"/>
-          <rect x="448" y="400" width="140" height="62" rx="6" class="c-external" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(454 406) scale(0.6875)">
+          <rect x="448" y="368" width="140" height="62" rx="6" class="c-mask"/>
+          <rect x="448" y="368" width="140" height="62" rx="6" class="c-external" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(454 374) scale(0.6875)">
             <rect x="2.5" y="5" width="8.5" height="8" rx="1.5"/>
             <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="518" y="429" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Codex app-server</text>
-        <text data-detail="context" x="518" y="445" class="t-muted" font-size="9" text-anchor="middle">turn 循环</text>
+          <text data-node-label="" data-detail-anchor="" x="518" y="397" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Codex app-server</text>
+        <text data-detail="context" x="518" y="413" class="t-muted" font-size="9" text-anchor="middle">turn 循环</text>
         </g>
 
         <g id="node-agent_tools" data-node-id="agent_tools" data-node-label="工程工具" tabindex="0" role="button" aria-label="聚焦工程工具，report / read / plan / import, Symphony 宿主进程" aria-pressed="false" data-node-kind="backend" data-node-sublabel="report / read / plan / import" data-node-tag="写入边界" data-node-context="Symphony 宿主进程">
           <title>工程工具 · report / read / plan / import · Symphony 宿主进程 · 写入边界</title>
-          <rect x="648" y="400" width="150" height="62" rx="6" class="c-mask"/>
-          <rect x="648" y="400" width="150" height="62" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(654 406) scale(0.6875)">
+          <rect x="648" y="368" width="150" height="62" rx="6" class="c-mask"/>
+          <rect x="648" y="368" width="150" height="62" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(654 374) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="723" y="429" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">工程工具</text>
-        <text data-detail="context" x="723" y="445" class="t-muted" font-size="8.1" text-anchor="middle">report / read / plan / import</text>
-        <text data-detail="fine" x="723" y="454" class="t-backend" font-size="7" text-anchor="middle">写入边界</text>
+          <text data-node-label="" data-detail-anchor="" x="723" y="397" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">工程工具</text>
+        <text data-detail="context" x="723" y="413" class="t-muted" font-size="8.1" text-anchor="middle">report / read / plan / import</text>
+        <text data-detail="fine" x="723" y="422" class="t-backend" font-size="7" text-anchor="middle">写入边界</text>
         </g>
 
         <g id="node-store" data-node-id="store" data-node-label="Experience.Store" tabindex="0" role="button" aria-label="聚焦Experience.Store，journal + CAS blobs, Symphony 宿主进程" aria-pressed="false" data-node-kind="database" data-node-sublabel="journal + CAS blobs" data-node-tag="不可变记录" data-node-context="Symphony 宿主进程">
           <title>Experience.Store · journal + CAS blobs · Symphony 宿主进程 · 不可变记录</title>
-          <rect x="858" y="400" width="150" height="62" rx="6" class="c-mask"/>
-          <rect x="858" y="400" width="150" height="62" rx="6" class="c-database" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(864 406) scale(0.6875)">
+          <rect x="858" y="368" width="150" height="62" rx="6" class="c-mask"/>
+          <rect x="858" y="368" width="150" height="62" rx="6" class="c-database" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(864 374) scale(0.6875)">
             <ellipse cx="8" cy="4" rx="5" ry="2"/>
             <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="933" y="429" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Experience.Store</text>
-        <text data-detail="context" x="933" y="445" class="t-muted" font-size="9" text-anchor="middle">journal + CAS blobs</text>
-        <text data-detail="fine" x="933" y="454" class="t-database" font-size="7" text-anchor="middle">不可变记录</text>
+          <text data-node-label="" data-detail-anchor="" x="933" y="397" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Experience.Store</text>
+        <text data-detail="context" x="933" y="413" class="t-muted" font-size="9" text-anchor="middle">journal + CAS blobs</text>
+        <text data-detail="fine" x="933" y="422" class="t-database" font-size="7" text-anchor="middle">不可变记录</text>
         </g>
 
         <g id="node-device_manager" data-node-id="device_manager" data-node-label="Devices.Manager" tabindex="0" role="button" aria-label="聚焦Devices.Manager，登记 / 租约 / 采集, Symphony 宿主进程" aria-pressed="false" data-node-kind="backend" data-node-sublabel="登记 / 租约 / 采集" data-node-context="Symphony 宿主进程">
           <title>Devices.Manager · 登记 / 租约 / 采集 · Symphony 宿主进程</title>
-          <rect x="648" y="600" width="150" height="62" rx="6" class="c-mask"/>
-          <rect x="648" y="600" width="150" height="62" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(654 606) scale(0.6875)">
+          <rect x="648" y="545" width="150" height="62" rx="6" class="c-mask"/>
+          <rect x="648" y="545" width="150" height="62" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(654 551) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="723" y="629" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Devices.Manager</text>
-        <text data-detail="context" x="723" y="645" class="t-muted" font-size="9" text-anchor="middle">登记 / 租约 / 采集</text>
+          <text data-node-label="" data-detail-anchor="" x="723" y="574" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Devices.Manager</text>
+        <text data-detail="context" x="723" y="590" class="t-muted" font-size="9" text-anchor="middle">登记 / 租约 / 采集</text>
         </g>
 
         <g id="node-serial_port" data-node-id="serial_port" data-node-label="SerialPort + helper" tabindex="0" role="button" aria-label="聚焦SerialPort + helper，JSONL / 原始字节, Symphony 宿主进程" aria-pressed="false" data-node-kind="backend" data-node-sublabel="JSONL / 原始字节" data-node-context="Symphony 宿主进程">
           <title>SerialPort + helper · JSONL / 原始字节 · Symphony 宿主进程</title>
-          <rect x="858" y="600" width="150" height="62" rx="6" class="c-mask"/>
-          <rect x="858" y="600" width="150" height="62" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(864 606) scale(0.6875)">
+          <rect x="858" y="545" width="150" height="62" rx="6" class="c-mask"/>
+          <rect x="858" y="545" width="150" height="62" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(864 551) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="933" y="629" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">SerialPort + helper</text>
-        <text data-detail="context" x="933" y="645" class="t-muted" font-size="9" text-anchor="middle">JSONL / 原始字节</text>
+          <text data-node-label="" data-detail-anchor="" x="933" y="574" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">SerialPort + helper</text>
+        <text data-detail="context" x="933" y="590" class="t-muted" font-size="9" text-anchor="middle">JSONL / 原始字节</text>
         </g>
 
         <g id="node-board" data-node-id="board" data-node-label="目标板" tabindex="0" role="button" aria-label="聚焦目标板，串口 / 图像源, 架构组件" aria-pressed="false" data-node-kind="external" data-node-sublabel="串口 / 图像源" data-node-tag="未接入" data-node-context="架构组件">
           <title>目标板 · 串口 / 图像源 · 架构组件 · 未接入</title>
-          <rect x="1068" y="600" width="124" height="60" rx="6" class="c-mask"/>
-          <rect x="1068" y="600" width="124" height="60" rx="6" class="c-external" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(1074 606) scale(0.6875)">
+          <rect x="1068" y="545" width="124" height="60" rx="6" class="c-mask"/>
+          <rect x="1068" y="545" width="124" height="60" rx="6" class="c-external" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(1074 551) scale(0.6875)">
             <rect x="2.5" y="5" width="8.5" height="8" rx="1.5"/>
             <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="1130" y="628" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">目标板</text>
-        <text data-detail="context" x="1130" y="644" class="t-muted" font-size="9" text-anchor="middle">串口 / 图像源</text>
-        <text data-detail="fine" x="1130" y="652" class="t-external" font-size="7" text-anchor="middle">未接入</text>
+          <text data-node-label="" data-detail-anchor="" x="1130" y="573" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">目标板</text>
+        <text data-detail="context" x="1130" y="589" class="t-muted" font-size="9" text-anchor="middle">串口 / 图像源</text>
+        <text data-detail="fine" x="1130" y="597" class="t-external" font-size="7" text-anchor="middle">未接入</text>
         </g>
 
         <g id="node-workbench" data-node-id="workbench" data-node-label="工作台页面" tabindex="0" role="button" aria-label="聚焦工作台页面，看板 / 设备 / 审阅 / 架构, Symphony 宿主进程" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="看板 / 设备 / 审阅 / 架构" data-node-context="Symphony 宿主进程">
           <title>工作台页面 · 看板 / 设备 / 审阅 / 架构 · Symphony 宿主进程</title>
-          <rect x="238" y="90" width="200" height="62" rx="6" class="c-mask"/>
-          <rect x="238" y="90" width="200" height="62" rx="6" class="c-frontend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="frontend" class="semantic-sigil s-frontend" transform="translate(244 96) scale(0.6875)">
+          <rect x="238" y="70" width="200" height="62" rx="6" class="c-mask"/>
+          <rect x="238" y="70" width="200" height="62" rx="6" class="c-frontend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="frontend" class="semantic-sigil s-frontend" transform="translate(244 76) scale(0.6875)">
             <rect x="2" y="3" width="12" height="10" rx="2"/>
             <path d="M2 6.5h12"/>
             <circle cx="4.1" cy="4.8" r=".7" class="sigil-fill"/>
             <circle cx="6.3" cy="4.8" r=".7" class="sigil-fill"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="338" y="119" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">工作台页面</text>
-        <text data-detail="context" x="338" y="135" class="t-muted" font-size="9" text-anchor="middle">看板 / 设备 / 审阅 / 架构</text>
+          <text data-node-label="" data-detail-anchor="" x="338" y="99" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">工作台页面</text>
+        <text data-detail="context" x="338" y="115" class="t-muted" font-size="9" text-anchor="middle">看板 / 设备 / 审阅 / 架构</text>
         </g>
 
         <!-- Connection labels -->
         <g data-detail="context" data-edge-from="tracker" data-edge-to="orchestrator" data-edge-label="轮询 Issue" data-edge-key="0" data-edge-id="rel_poll">
-          <rect x="179" y="310" width="58" height="14" rx="3" class="c-mask"/>
-          <text x="208" y="320" class="t-backend" font-size="8" text-anchor="middle">轮询 Issue</text>
+          <rect x="179" y="290" width="58" height="14" rx="3" class="c-mask"/>
+          <text x="208" y="300" class="t-backend" font-size="8" text-anchor="middle">轮询 Issue</text>
         </g>
         <g data-detail="context" data-edge-from="orchestrator" data-edge-to="agent_runner" data-edge-label="派发" data-edge-key="1" data-edge-id="rel_dispatch">
-          <rect x="403" y="266" width="30" height="14" rx="3" class="c-mask"/>
-          <text x="418" y="276" class="t-backend" font-size="8" text-anchor="middle">派发</text>
+          <rect x="403" y="246" width="30" height="14" rx="3" class="c-mask"/>
+          <text x="418" y="256" class="t-backend" font-size="8" text-anchor="middle">派发</text>
         </g>
         <g data-detail="context" data-edge-from="agent_runner" data-edge-to="codex" data-edge-label="app-server" data-edge-key="2" data-edge-id="rel_appserver">
           <rect x="489" y="276" width="58" height="14" rx="3" class="c-mask"/>
           <text x="518" y="286" class="t-muted" font-size="8" text-anchor="middle">app-server</text>
         </g>
         <g data-detail="context" data-edge-from="codex" data-edge-to="agent_tools" data-edge-label="工具调用" data-edge-key="3" data-edge-id="rel_toolcall">
-          <rect x="593.8" y="411" width="48.4" height="14" rx="3" class="c-mask"/>
-          <text x="618" y="421" class="t-backend" font-size="8" text-anchor="middle">工具调用</text>
+          <rect x="593.8" y="379" width="48.4" height="14" rx="3" class="c-mask"/>
+          <text x="618" y="389" class="t-backend" font-size="8" text-anchor="middle">工具调用</text>
         </g>
         <g data-detail="context" data-edge-from="agent_tools" data-edge-to="store" data-edge-label="先落盘再回执" data-edge-key="4" data-edge-id="rel_append">
           <rect x="794.2" y="466" width="67.6" height="14" rx="3" class="c-mask"/>
           <text x="828" y="476" class="t-backend" font-size="8" text-anchor="middle">先落盘再回执</text>
         </g>
         <g data-detail="context" data-edge-from="workbench" data-edge-to="store" data-edge-label="读取投影" data-edge-key="5" data-edge-id="rel_read">
-          <rect x="809.8" y="256" width="48.4" height="14" rx="3" class="c-mask"/>
-          <text x="834" y="266" class="t-muted" font-size="8" text-anchor="middle">读取投影</text>
+          <rect x="809.8" y="230" width="48.4" height="14" rx="3" class="c-mask"/>
+          <text x="834" y="240" class="t-muted" font-size="8" text-anchor="middle">读取投影</text>
         </g>
         <g data-detail="context" data-edge-from="workbench" data-edge-to="orchestrator" data-edge-label="运行快照" data-edge-key="6" data-edge-id="rel_snapshot">
-          <rect x="301.3" y="206" width="48.4" height="14" rx="3" class="c-mask"/>
-          <text x="325.5" y="216" class="t-messagebus" font-size="8" text-anchor="middle">运行快照</text>
+          <rect x="301.3" y="186" width="48.4" height="14" rx="3" class="c-mask"/>
+          <text x="325.5" y="196" class="t-messagebus" font-size="8" text-anchor="middle">运行快照</text>
         </g>
         <g data-detail="context" data-edge-from="device_manager" data-edge-to="serial_port" data-edge-label="采集会话" data-edge-key="7" data-edge-id="rel_capture">
-          <rect x="803.8" y="611" width="48.4" height="14" rx="3" class="c-mask"/>
-          <text x="828" y="621" class="t-muted" font-size="8" text-anchor="middle">采集会话</text>
+          <rect x="803.8" y="556" width="48.4" height="14" rx="3" class="c-mask"/>
+          <text x="828" y="566" class="t-muted" font-size="8" text-anchor="middle">采集会话</text>
         </g>
         <g data-detail="context" data-edge-from="serial_port" data-edge-to="board" data-edge-label="原始字节" data-edge-key="8" data-edge-id="rel_bytes">
-          <rect x="1013.8" y="611" width="48.4" height="14" rx="3" class="c-mask"/>
-          <text x="1038" y="621" class="t-messagebus" font-size="8" text-anchor="middle">原始字节</text>
+          <rect x="1013.8" y="556" width="48.4" height="14" rx="3" class="c-mask"/>
+          <text x="1038" y="566" class="t-messagebus" font-size="8" text-anchor="middle">原始字节</text>
         </g>
         <g data-detail="context" data-edge-from="serial_port" data-edge-to="store" data-edge-label="chunk 落盘" data-edge-key="9" data-edge-id="rel_chunk">
-          <rect x="904" y="580" width="58" height="14" rx="3" class="c-mask"/>
-          <text x="933" y="590" class="t-backend" font-size="8" text-anchor="middle">chunk 落盘</text>
+          <rect x="904" y="525" width="58" height="14" rx="3" class="c-mask"/>
+          <text x="933" y="535" class="t-backend" font-size="8" text-anchor="middle">chunk 落盘</text>
         </g>
 
         <!-- Boundary labels (foreground masks keep routes out of titles) -->
         <g data-graph-role="structural-frame-label" data-composition-frame-id="0" data-composition-frame-kind="region" data-composition-frame-label="Symphony 宿主进程">
-          <rect data-graph-role="structural-frame-label-mask" x="218" y="70" width="101.8" height="16" rx="3" class="c-mask"/>
-          <text data-boundary-label="" x="222" y="83" class="t-cloud" font-size="9" font-weight="600">Symphony 宿主进程</text>
+          <rect data-graph-role="structural-frame-label-mask" x="224" y="50" width="101.8" height="16" rx="3" class="c-mask"/>
+          <text data-boundary-label="" x="228" y="63" class="t-cloud" font-size="9" font-weight="600">Symphony 宿主进程</text>
         </g>
 
         <!-- Legend -->
         <g data-legend="" data-legend-bridge="">
-          <text x="40" y="714" class="t-primary" font-size="12" font-weight="650">图例</text>
-          <g data-legend-semantic-kind="frontend" data-legend-kind="frontend" data-legend-label="前端" data-legend-x="40" data-legend-baseline="734" data-legend-width="63">
-            <rect x="40" y="725" width="16" height="10" rx="2.5" class="c-frontend" stroke-width="1"/>
-            <text x="62" y="734" class="t-muted" font-size="10" font-weight="500">前端</text>
+          <text x="40" y="659" class="t-primary" font-size="12" font-weight="650">图例</text>
+          <g data-legend-semantic-kind="frontend" data-legend-kind="frontend" data-legend-label="前端" data-legend-x="40" data-legend-baseline="679" data-legend-width="63">
+            <rect x="40" y="670" width="16" height="10" rx="2.5" class="c-frontend" stroke-width="1"/>
+            <text x="62" y="679" class="t-muted" font-size="10" font-weight="500">前端</text>
           </g>
-          <g data-legend-semantic-kind="backend" data-legend-kind="backend" data-legend-label="后端" data-legend-x="125" data-legend-baseline="734" data-legend-width="63">
-            <rect x="125" y="725" width="16" height="10" rx="2.5" class="c-backend" stroke-width="1"/>
-            <text x="147" y="734" class="t-muted" font-size="10" font-weight="500">后端</text>
+          <g data-legend-semantic-kind="backend" data-legend-kind="backend" data-legend-label="后端" data-legend-x="125" data-legend-baseline="679" data-legend-width="63">
+            <rect x="125" y="670" width="16" height="10" rx="2.5" class="c-backend" stroke-width="1"/>
+            <text x="147" y="679" class="t-muted" font-size="10" font-weight="500">后端</text>
           </g>
-          <g data-legend-semantic-kind="database" data-legend-kind="database" data-legend-label="数据库" data-legend-x="210" data-legend-baseline="734" data-legend-width="73">
-            <rect x="210" y="725" width="16" height="10" rx="2.5" class="c-database" stroke-width="1"/>
-            <text x="232" y="734" class="t-muted" font-size="10" font-weight="500">数据库</text>
+          <g data-legend-semantic-kind="database" data-legend-kind="database" data-legend-label="数据库" data-legend-x="210" data-legend-baseline="679" data-legend-width="73">
+            <rect x="210" y="670" width="16" height="10" rx="2.5" class="c-database" stroke-width="1"/>
+            <text x="232" y="679" class="t-muted" font-size="10" font-weight="500">数据库</text>
           </g>
-          <g data-legend-semantic-kind="external" data-legend-kind="external" data-legend-label="外部系统" data-legend-x="305" data-legend-baseline="734" data-legend-width="83">
-            <rect x="305" y="725" width="16" height="10" rx="2.5" class="c-external" stroke-width="1"/>
-            <text x="327" y="734" class="t-muted" font-size="10" font-weight="500">外部系统</text>
+          <g data-legend-semantic-kind="external" data-legend-kind="external" data-legend-label="外部系统" data-legend-x="305" data-legend-baseline="679" data-legend-width="83">
+            <rect x="305" y="670" width="16" height="10" rx="2.5" class="c-external" stroke-width="1"/>
+            <text x="327" y="679" class="t-muted" font-size="10" font-weight="500">外部系统</text>
           </g>
         </g>
       </svg>

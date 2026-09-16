@@ -1042,10 +1042,10 @@ defmodule SymphonyElixir.Experience.ArchitectureTest do
       assert artifact["schema_check"]["status"] == "passed"
       assert artifact["source_revision"] == "3600812f2e5a6d7bb2bd07676ceef7d57d0287e9"
 
-      # The delivery is what was accepted; the browser run is a separate claim
-      # that failed here and is kept as failed.
-      assert artifact["browser_check"]["status"] == "failed"
-      assert artifact["browser_check"]["detail"] =~ "timed out"
+      # The delivery is the deterministic acceptance; the browser run is a
+      # separate claim, and it now agrees: the four reference viewports fit.
+      assert artifact["browser_check"]["status"] == "passed"
+      assert artifact["browser_check"]["detail"] =~ "pass"
 
       # Every source reference is held to the revision the artifact names.
       assert length(artifact["components"]) == 10

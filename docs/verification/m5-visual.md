@@ -1,46 +1,77 @@
-# M5 视觉验收（TC17/TC18）— 尝试记录
+# M5 视觉验收（TC17/TC18）— 证据与状态
 
-状态：**blocked**。本环境无法产出浏览器证据。本文件记录实际执行到哪一步、看到什么，
-以及为什么停下来，而不是把「跑不动」写成「通过」。
+状态：**浏览器证据已产出**（此前记为 blocked，原因是环境问题，已定位并修复）。逐张的感知评审
+仍属人工/多模态评审范畴，本文件不代它下结论。
 
-## 已做的事
+## 之前为什么做不了（已修复）
 
-新增 `elixir/scripts/workbench-shots.sh`：用演示 workflow 启动真实应用，等服务器就绪后由
-环境自带的 headless Chrome 按 1440×900 逐页截图，另附 `scripts/workbench_server.exs`
-（`--no-start` 起应用，先设定 workflow 路径再加 `--no-halt`）。
+曾记为「Chrome 无法完成任何 http/https 导航」，并把方向指向代理，那是误判。实际原因：
 
-脚本本身的启动段是可用的：服务器起来了，`curl` 对 `/workbench/issues` 返回 `200`。
+headless Chrome 启动后要向会话 keyring（gnome-keyring，经 D-Bus）索要 cookie 加密密钥。本环境
+`XDG_SESSION_TYPE=tty`，该调用不返回，于是 CookieStore 的持久层永远加载不完——NetLog 里只有
+`COOKIE_PERSISTENT_STORE_KEY_LOAD_STARTED`，从头到尾没有一次 `..._LOAD_FINISHED`。而
+`URLRequestHttpJob` 在 cookie 这一步是同步等待的，结果是**所有带 cookie 的请求（即所有导航）都
+永远停在拿到 socket 之前**，且不报任何错。
 
-## 阻塞点
+加 `--password-store=basic` 即恢复。`elixir/scripts/workbench-shots.sh` 与 archify 的
+`bin/visual-check.mjs` 都已带上该 flag。
 
-Chrome 在本环境**无法完成任何 http/https 导航**。已定位到可复现的一步：Chrome 会与目标建立
-TCP 连接，但在发出任何请求字节前就关闭它。用自建裸 socket 服务器观测：
+排查中被误读的现象，记下来免得再走一遍：
 
-| 观测 | 结果 |
+| 现象 | 实际含义 |
 |---|---|
-| 服务器侧 | 两次 `ACCEPT`（预连接 + 请求），随后两次 `recv` 都返回 0 字节——请求头从未到达 |
-| Chrome 侧 NetLog | `URL_REQUEST_START_JOB`（main frame）→ `TCP_CONNECT` 完成 → 开始发送请求头，之后没有任何响应事件 |
-| `file://` 与 `data:` 导航 | 0.25s 完成（渲染与 `--dump-dom` 路径本身没问题） |
-| Chrome 自身的组件更新器 | 同一次运行里成功传输 HTTPS：161KB/2.4s、248KB/0.36s |
+| 服务器侧两次 `ACCEPT` 后 `recv` 返回 0 | 那两个 socket 是 `is_preconnect=true` 的**预连接**，在 +510ms 被 `SOCKET_POOL_CLOSING_SOCKET` 以 `reason="Cert verifier changed"` 清池；**主框架请求从未绑定到 socket** |
+| 外网请求也挂住（`example.com`/`neverssl.com`） | 所以与代理、与「本地直连」都无关；走代理的系统请求（`clients2.google.com/time`、组件更新）反而全部成功，因为 `URLRequestHttpJob` 那一步它们不查 cookie |
+| `--no-proxy-server`、显式 `--proxy-server`、清空 proxy 环境变量均无效 | 与代理无关的旁证 |
 
-**已排除代理**。环境里确实有三层代理配置：`http_proxy`/`https_proxy`/`no_proxy` 环境变量、
-gsettings `org.gnome.system.proxy mode=manual`（127.0.0.1:7897）、以及 PAC 端点
-`http://127.0.0.1:33331/commands/pac`（返回 `PROXY 127.0.0.1:7897; SOCKS5 127.0.0.1:7897;
-DIRECT;`）。但下面这些做法表现完全相同：
+磁盘缓存正常（`HTTP_CACHE_GET_BACKEND`/`OPEN_OR_CREATE_ENTRY` 都完成），`--no-sandbox` 也与本次无关。
+判断依据是 NetLog + 自建线程化裸 socket 服务器，复现脚本思路见下。
 
-- `--no-proxy-server`
-- 显式 `--proxy-server=http://127.0.0.1:7897`（本地与远程目标都试过）
-- 清空全部 proxy 环境变量 + `--no-proxy-server` + 全新 `--user-data-dir`
+## 现在可以提交的证据
 
-对照：`curl` 直连（`--noproxy '*'`）、走 HTTP 代理、走 SOCKS5 三种方式对同一目标都返回 200。
+| 产物 | 说明 |
+|---|---|
+| `docs/verification/evidence/screenshots/*.png` | `elixir/scripts/workbench-shots.sh` 产出：issues/devices/reviews/architecture/dashboard 五页，1440×900 |
+| 同目录 `manifest.txt` | 每页 PNG 字节数 |
+| `docs/architecture/symphony-embedded-workbench/architecture.visual-check.{1440x900,2048x1320}.{light,dark}.png` | archify `visual-check` 产出，明暗两套视口 |
+| 同目录 `architecture.visual-check.html` | contact sheet |
 
-同样无效的还有：`--headless=shell`、`--single-process`（报 V8 Proxy resolver 不可用）、
-`NetworkServiceInProcess`、以及关闭后台网络与组件更新的整套 flag。
+`visual-check` 退出 0，各视口 `overflowX/overflowY=false`、`readabilityOk=true`、
+`viewerChromeOk=true`、`legendDockIntersectionArea=0`。
 
-因此 TC17（四页 + 架构页 1440×900 视觉基线、tokens 对比度）与 TC18 的浏览器部分
-（键盘顺序、焦点可见、状态形状）在本环境**没有实际截图可提交**。残留的不确定：从外部只能
-证明「连接建立后请求字节没有发出」，无法进一步说明是沙箱拦截还是 Chrome 150 在此内核下的
-导航发送路径问题。可用的绕法是在有可用浏览器的机器上跑同一份脚本。
+### 环境修好后第一次采集是失败的，而且是真的缺陷
+
+`--password-store=basic` 之后第一次 `visual-check` 退出 **1**：1440×900 上
+`scrollHeight=937 > 900`（1600×1000 也差 19px），1920 与 2048 通过。也就是说，浏览器能跑之后
+测出的第一个事实是**这张图在该视口下装不进首屏**，而不是「环境好了所以通过」。
+
+按上游的修复顺序（先压缩间距、删掉真正冗余的内容，再考虑节点与字号）压缩了 IR 的排版节奏：
+行距收紧、边界 `pad` 24→18；没有改节点尺寸、字号或拓扑。重新出图后 `deliver` 9/9，
+`visual-check` 退出 0，四个视口的 `scrollHeight` 与 `innerHeight` 相等：
+
+| 视口 | 修复前 scrollHeight | 修复后 |
+|---|---|---|
+| 1440×900 | 937（溢出 37px） | 900 |
+| 1600×1000 | 1019（溢出 19px） | 1000 |
+| 1920×1080 | 1080 | 1080 |
+| 2048×1320 | 1320 | 1320 |
+
+IR、HTML 与回执的哈希随之变化，manifest 与工作台里的产物都是修复后的这一版（交付验收与浏览器
+验收在同一版上都是 pass）。
+
+## 已实际看过的部分
+
+`issues.png`（1440×900）确认为真实渲染，不是空白页：标题 “Symphony Embedded Workbench”、导航
+（工作台/设备/待审阅/架构）、“运行状态 · 运行中”、看板各列（待办/进行中/待审阅/已完成）与
+“最新事件”日志均在位。其余四张只核对了尺寸与字节数，**尚未逐张评审**。
+
+## 仍未完成的部分
+
+- 按 `docs/VISUAL_SPEC.md` / `docs/DESIGN_UPDATE_SOFT_GLASS.md` 逐张做感知评审（需要人或多模态评审者）；
+- 1280 与 1920 宽度的回归；
+- 键盘顺序、焦点可见、状态形状的交互走查（TC18 浏览器部分）。
+
+因此 TC17/TC18 记为**证据已具备、评审未完成**，而不是通过。
 
 ## 没有据此声称的东西
 
@@ -48,21 +79,17 @@ DIRECT;`）。但下面这些做法表现完全相同：
 - 没有用生成的 HTML 反推业务数据或状态。
 - 没有降低任何门槛：`make all` 与原有阈值未改动。
 
-## 可以替代提交的证据（已具备）
-
-- 页面的服务端渲染与交互由 `workbench_live_test.exs`（含架构页与产物端点）断言；
-- Soft Glass token 值在 `priv/static/workbench.css` 中可逐项核对（正文 15px、标题 28px、
-  圆角 10/16/20px、单一蓝色主动作、导航磨砂、日志不透明）；
-- 结构与状态都有文字标签，颜色不单独承载语义（卡片/徽章都带文字）。
-
-这些都不是视觉验收的替代品，只是把「已经验证到的部分」与「没有验证的部分」分开。
-
-## 在有浏览器的环境里怎么继续
+## 复现与继续
 
 ```sh
 elixir/scripts/workbench-shots.sh                 # 默认写到 docs/verification/evidence/screenshots
 ARCHIFY_CHROME=/path/to/chrome elixir/scripts/workbench-shots.sh /tmp/shots
+
+# 对着已经在运行的实例取图（例如登记了真实设备清单、发布了真实架构产物的那一个），
+# 而不是脚本自己起的临时实例：
+SHOT_BASE_URL=http://127.0.0.1:4123 elixir/scripts/workbench-shots.sh
 ```
 
-再按 `docs/VISUAL_SPEC.md` / `docs/DESIGN_UPDATE_SOFT_GLASS.md` 逐张看图，并补 1280/1920
-回归与键盘走查。脚本目前只在启动段被执行过；整段流程尚未在本环境跑通。
+若在任何机器上再次遇到「导航无错挂住」，先在 NetLog 里查
+`COOKIE_PERSISTENT_STORE_KEY_LOAD_STARTED` 有没有配对的 `..._LOAD_FINISHED`，再查
+`SOCKET_POOL_CLOSING_SOCKET` 的 reason——这两条比看代理配置快得多。

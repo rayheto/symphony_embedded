@@ -6,12 +6,12 @@
   "input": "/home/seeed/symphony_embedded/docs/architecture/symphony-embedded-workbench/source.architecture.json",
   "output": "/home/seeed/symphony_embedded/docs/architecture/symphony-embedded-workbench/architecture.html",
   "specification": {
-    "sha256": "be9bf74fe851a690e8b412293b54322e38608ace482f9b002f93e1d8bf7ed1d1",
+    "sha256": "2b5886828c59817409cba47b57d6f2e04d6e86df682c8b3ed6b4fac32d61929c",
     "bytes": 6365
   },
   "artifact": {
-    "sha256": "5c83acbddd727b1844e17f46f5f6521f87ba4fbeb482c3fd12c5c1207797ea4d",
-    "bytes": 719270
+    "sha256": "a5fcb7ec5d7e729b61cda9eff12f46cc27c1a18238483e12d6ce9327f42f10f0",
+    "bytes": 719269
   },
   "validation": {
     "checksPassed": 9,
