@@ -5,9 +5,10 @@ defmodule SymphonyElixirWeb.WorkbenchLiveTest do
 
   import Phoenix.ConnTest
   import Phoenix.LiveViewTest
+  import Plug.Conn, only: [get_resp_header: 2]
 
   alias SymphonyElixir.Devices.Manager
-  alias SymphonyElixir.Experience.{DemoAdapter, Store}
+  alias SymphonyElixir.Experience.{Architecture, Canonical, DemoAdapter, Store}
 
   @endpoint SymphonyElixirWeb.Endpoint
   @data_root_prefix "symphony-workbench-live"
@@ -1008,8 +1009,9 @@ defmodule SymphonyElixirWeb.WorkbenchLiveLinearTest do
 
   import Phoenix.ConnTest
   import Phoenix.LiveViewTest
+  import Plug.Conn, only: [get_resp_header: 2]
 
-  alias SymphonyElixir.Experience.{Project, Query, Store}
+  alias SymphonyElixir.Experience.{Architecture, Canonical, Project, Query, Store}
 
   @endpoint SymphonyElixirWeb.Endpoint
 
@@ -1187,5 +1189,411 @@ defmodule SymphonyElixirWeb.WorkbenchLiveLinearTest do
     plan = Query.issue_context(project, "EMB-42") |> elem(1) |> Map.fetch!("current_plan")
     assert String.length(plan["plan_sha256"]) == 64
     assert plan["decision_revision"] == 2
+  end
+
+  describe "architecture page" do
+    @revision "3600812f2e5a6d7bb2bd07676ceef7d57d0287e9"
+
+    defp artifact_ir do
+      %{
+        "components" => [%{"id" => "core", "label" => "Core"}, %{"id" => "storage", "label" => "Storage"}],
+        "connections" => [%{"id" => "rel_1", "from" => "core", "to" => "storage"}]
+      }
+    end
+
+    defp artifact_manifest(files, overrides) do
+      Map.merge(
+        %{
+          "schema_version" => "1.0",
+          "project_id" => "embedded-lab-demo",
+          "artifact_id" => "art-1",
+          "kind" => "source",
+          "source_repo_url" => "https://github.com/rayheto/symphony_embedded",
+          "source_revision" => @revision,
+          "base_revision" => nil,
+          "plan_revision" => nil,
+          "plan_sources" => [],
+          "skill_commit" => Architecture.skill_commit(),
+          "ir_sha256" => files["ir"],
+          "html_sha256" => files["html"],
+          "deliver_receipt_sha256" => files["deliver"],
+          "browser_receipt_sha256" => files["browser"],
+          "visual_review_sha256" => nil,
+          "components" => [
+            %{
+              "id" => "core",
+              "label" => "Core",
+              "layers" => ["L2"],
+              "source_refs" => [
+                %{
+                  "kind" => "git",
+                  "locator" => "elixir/lib/core.ex",
+                  "repo_revision" => @revision,
+                  "line" => 1,
+                  "end_line" => 9
+                }
+              ],
+              "issue_ids" => [],
+              "problem_case_ids" => [],
+              "evidence_ids" => [],
+              "implementation_status" => "planned",
+              "verification_status" => "unverified"
+            }
+          ],
+          "limitations" => ["验证范围只覆盖已提交的 blob。"],
+          "relationships" => [
+            %{
+              "id" => "rel_1",
+              "from_component_id" => "core",
+              "to_component_id" => "storage",
+              "description" => "core 写入 storage",
+              "source_refs" => []
+            }
+          ]
+        },
+        overrides
+      )
+    end
+
+    defp blob(bytes, media_type) do
+      {:ok, project} = Project.load()
+      {:ok, receipt} = Store.put_blob(project.project_id, bytes, media_type)
+      receipt["sha256"]
+    end
+
+    defp publish_artifact(overrides \\ %{}, browser_status \\ "fail") do
+      {:ok, project} = Project.load()
+      overrides = Map.put_new(overrides, "project_id", project.project_id)
+
+      ir_sha = blob(Canonical.encode!(artifact_ir()), "application/json")
+      html_sha = blob("<html><body><svg></svg></body></html>", "text/html")
+
+      deliver_sha =
+        blob(
+          Canonical.encode!(%{
+            "ok" => true,
+            "validation" => %{"checksPassed" => 9, "checkCount" => 9, "compositionStatus" => "pass", "errors" => 0, "warnings" => 0}
+          }),
+          "application/json"
+        )
+
+      browser_sha = blob(Canonical.encode!(%{"status" => browser_status, "error" => "网络受限"}), "application/json")
+
+      files = %{"ir" => ir_sha, "html" => html_sha, "deliver" => deliver_sha, "browser" => browser_sha}
+      manifest_sha = blob(Canonical.encode!(artifact_manifest(files, overrides)), "application/json")
+
+      Architecture.validate_and_publish(project, %{
+        "artifact_id" => Map.get(overrides, "artifact_id", "art-1"),
+        "manifest_blob_sha256" => manifest_sha,
+        "ir_blob_sha256" => ir_sha,
+        "html_blob_sha256" => html_sha
+      })
+    end
+
+    test "a project with no diagram says so instead of showing an empty frame" do
+      {:ok, _view, html} = live(build_conn(), "/workbench/architecture")
+
+      assert html =~ "还没有为该项目生成架构图"
+      assert html =~ "只登记请求并核对产物"
+      refute html =~ "iframe"
+    end
+
+    test "a delivered diagram is shown with its revision, index and receipts" do
+      {:ok, _artifact} = publish_artifact()
+
+      {:ok, view, html} = live(build_conn(), "/workbench/architecture")
+
+      assert html =~ "last-good：art-1"
+      assert html =~ "源码图"
+      assert html =~ "无法判断是否过期"
+      assert html =~ "Core"
+      assert html =~ "验证范围只覆盖已提交的 blob。"
+      assert html =~ "交付验收"
+
+      # The frame is sandboxed and pinned to the revision the page labelled.
+      iframe = view |> element("iframe.wb-viewer") |> render()
+      assert iframe =~ ~s(sandbox="allow-scripts allow-downloads")
+      assert iframe =~ "rev=1"
+      assert iframe =~ "theme=light"
+
+      # A failed browser run is reported as a fact, not folded into delivery.
+      assert render(view) =~ "失败（网络受限）"
+    end
+
+    test "selecting a component shows its sources and status" do
+      {:ok, _artifact} = publish_artifact()
+      {:ok, view, _html} = live(build_conn(), "/workbench/architecture")
+
+      view |> element("tr[phx-value-component='core']") |> render_click()
+
+      html = render(view)
+      assert html =~ "elixir/lib/core.ex:1-9"
+      assert html =~ "组件来源"
+      assert html =~ @revision
+    end
+
+    test "a generation request is recorded without claiming a diagram exists" do
+      {:ok, view, _html} = live(build_conn(), "/workbench/architecture")
+
+      html =
+        view
+        |> form("form[phx-submit='request']", %{
+          "request" => %{
+            "kind" => "source",
+            "issue_id" => "EMB-42",
+            "source_revision" => @revision,
+            "plan_sources" => ""
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "已登记架构请求"
+      assert html =~ "生成仍由原 Issue 工作流上的 Archify 任务完成"
+
+      # The same revision is not queued twice.
+      again =
+        view
+        |> form("form[phx-submit='request']", %{
+          "request" => %{"kind" => "source", "issue_id" => "EMB-42", "source_revision" => @revision, "plan_sources" => ""}
+        })
+        |> render_submit()
+
+      assert again =~ "queued"
+    end
+
+    test "a request without an issue is refused with the reason" do
+      {:ok, view, _html} = live(build_conn(), "/workbench/architecture")
+
+      html =
+        view
+        |> form("form[phx-submit='request']", %{
+          "request" => %{"kind" => "source", "issue_id" => "", "source_revision" => @revision, "plan_sources" => ""}
+        })
+        |> render_submit()
+
+      assert html =~ "无法登记请求"
+      assert html =~ "issue_id"
+    end
+
+    test "a refused request keeps what was typed" do
+      {:ok, view, _html} = live(build_conn(), "/workbench/architecture")
+
+      params = %{
+        "request" => %{"kind" => "source", "issue_id" => "EMB-42", "source_revision" => "HEAD", "plan_sources" => ""}
+      }
+
+      # Typing fires `phx-change` first, which is what puts the draft in the
+      # socket; the submit that follows must not cost the operator it.
+      form = form(view, "form[phx-submit='request']", params)
+      render_change(form, params)
+      html = render_submit(form, params)
+
+      assert html =~ "无法登记请求"
+      assert html =~ ~s(value="EMB-42")
+      assert html =~ ~s(value="HEAD")
+    end
+
+    test "a refused generation is listed beside the last-good it did not replace" do
+      {:ok, _good} = publish_artifact()
+
+      assert {:error, :source_revision_required, %{}} =
+               publish_artifact(%{"artifact_id" => "art-2", "source_revision" => "not-a-commit"})
+
+      {:ok, _view, html} = live(build_conn(), "/workbench/architecture")
+
+      assert html =~ "未被采纳的尝试"
+      assert html =~ "source_revision_required"
+      assert html =~ "last-good 仍是 art-1"
+    end
+
+    test "one artifact can be opened by id, and an unknown one degrades to the last-good" do
+      {:ok, _artifact} = publish_artifact()
+
+      {:ok, _view, html} = live(build_conn(), "/workbench/architecture/art-1")
+      assert html =~ "last-good：art-1"
+
+      {:ok, _view, other} = live(build_conn(), "/workbench/architecture/art-9")
+      assert other =~ "last-good：art-1"
+    end
+
+    test "the artifact endpoint serves the delivered bytes with a sandbox-safe policy" do
+      {:ok, _artifact} = publish_artifact()
+
+      conn = get(build_conn(), "/workbench/architecture/art-1/artifact/html?rev=1")
+      assert response(conn, 200) =~ "<svg"
+      assert get_resp_header(conn, "content-security-policy") |> hd() =~ "connect-src 'none'"
+      assert get_resp_header(conn, "x-content-type-options") == ["nosniff"]
+
+      assert get(build_conn(), "/workbench/architecture/art-1/artifact/manifest?rev=1") |> response(200) =~ "art-1"
+      assert get(build_conn(), "/workbench/architecture/art-1/artifact/ir?rev=1") |> response(200) =~ "rel_1"
+
+      assert get(build_conn(), "/workbench/architecture/art-1/artifact/poster") |> response(404) =~ "unknown_artifact_kind"
+      assert get(build_conn(), "/workbench/architecture/art-9/artifact/html") |> response(404) =~ "artifact_not_found"
+    end
+
+    test "a revision that was only requested is shown as requested, not as a diagram" do
+      params = %{"request" => %{"kind" => "source", "issue_id" => "EMB-42", "source_revision" => @revision, "plan_sources" => ""}}
+      {:ok, view, _html} = live(build_conn(), "/workbench/architecture")
+      render_submit(form(view, "form[phx-submit='request']", params), params)
+
+      html = render(view)
+      assert html =~ "尚未交付"
+      assert html =~ "这一版没有可读的 manifest"
+
+      # Refreshing re-reads the records rather than the page's memory of them.
+      assert render_click(view, "refresh") =~ "last-good"
+
+      # Selecting a component before any is indexed is a no-op, not a crash.
+      assert render_click(view, "select-component", %{"component" => "core"}) =~ "这一版没有可读的 manifest"
+    end
+
+    test "a comparison artifact is listed with both of its revisions" do
+      {:ok, _base} = publish_artifact()
+      {:ok, _delta} = publish_artifact(%{"artifact_id" => "art-delta", "kind" => "delta", "base_revision" => @revision})
+
+      {:ok, _view, html} = live(build_conn(), "/workbench/architecture")
+
+      assert html =~ "对比图"
+      assert html =~ "只有结构差异；不代表运行影响或安全结论。"
+      assert html =~ "art-delta"
+    end
+
+    test "a component whose sources are not all linked is still shown" do
+      {:ok, project} = Project.load()
+
+      {:ok, _record} =
+        Store.append(project.project_id, "Issue", "EMB-42", 0, %{"id" => "EMB-42", "state" => "Todo"}, %{
+          kind: "system",
+          id: "test",
+          display_name: "测试"
+        })
+
+      {:ok, _artifact} =
+        publish_artifact(%{
+          "components" => [
+            %{
+              "id" => "core",
+              "label" => "Core",
+              "layers" => ["L2", "crosscutting"],
+              "source_refs" => [
+                %{"kind" => "git", "locator" => "elixir/lib/core.ex", "repo_revision" => @revision, "line" => nil, "end_line" => nil},
+                %{"kind" => "git", "locator" => "README.md", "repo_revision" => @revision, "line" => 3, "end_line" => nil}
+              ],
+              "issue_ids" => ["EMB-42"],
+              "problem_case_ids" => ["DISP-12"],
+              "evidence_ids" => ["E-017"],
+              "implementation_status" => "planned",
+              "verification_status" => "unverified"
+            }
+          ]
+        })
+
+      {:ok, view, _html} = live(build_conn(), "/workbench/architecture")
+      view |> element("tr[phx-value-component='core']") |> render_click()
+
+      html = render(view)
+      assert html =~ "elixir/lib/core.ex"
+      assert html =~ "README.md:3"
+      assert html =~ "/workbench/issues/EMB-42"
+      assert html =~ "问题分析"
+      assert html =~ "证据"
+      assert html =~ "L2 crosscutting"
+    end
+
+    test "an artifact that no longer matches the working revision is marked, not hidden" do
+      {:ok, _artifact} = publish_artifact()
+      {:ok, project} = Project.load()
+
+      {:ok, _record} =
+        Store.append(project.project_id, "Binding", "run-1", 0, %{"repo_revision" => @revision}, %{
+          kind: "system",
+          id: "test",
+          display_name: "测试"
+        })
+
+      {:ok, _view, html} = live(build_conn(), "/workbench/architecture")
+      assert html =~ "对应当前 revision"
+
+      {:ok, _next} =
+        Store.append(project.project_id, "Binding", "run-2", 0, %{"repo_revision" => String.duplicate("e", 40)}, %{
+          kind: "system",
+          id: "test",
+          display_name: "测试"
+        })
+
+      {:ok, _view, stale} = live(build_conn(), "/workbench/architecture")
+      assert stale =~ "已过期"
+      refute stale =~ "对应当前 revision"
+    end
+
+    test "a skipped browser check is reported as skipped" do
+      {:ok, _artifact} = publish_artifact(%{}, "skipped")
+
+      {:ok, _view, html} = live(build_conn(), "/workbench/architecture")
+      assert html =~ "跳过"
+    end
+
+    test "an artifact the store cannot list is reported instead of an empty page" do
+      {:ok, _artifact} = publish_artifact()
+      :ok = stop_supervised!(Store)
+
+      {:ok, _view, html} = live(build_conn(), "/workbench/architecture")
+      assert html =~ "无法读取架构记录"
+      assert html =~ "store_unavailable"
+    end
+
+    test "a form with a structured field is treated as an empty one" do
+      {:ok, view, _html} = live(build_conn(), "/workbench/architecture")
+
+      params = %{"request" => %{"kind" => "source", "issue_id" => %{"nested" => "1"}, "source_revision" => @revision}}
+
+      html = render_submit(view, "request", params)
+      assert html =~ "无法登记请求"
+      assert html =~ "issue_id"
+    end
+
+    test "opening a refused attempt shows what it was and why it failed" do
+      {:ok, _good} = publish_artifact()
+
+      assert {:error, :source_revision_required, %{}} =
+               publish_artifact(%{"artifact_id" => "art-2", "source_revision" => "not-a-commit"})
+
+      {:ok, view, html} = live(build_conn(), "/workbench/architecture/art-2")
+
+      assert html =~ "失败（这一版未被采纳）"
+      assert html =~ "这一版没有可嵌入的 HTML"
+      assert html =~ "last-good：art-1 · 当前显示 art-2"
+      assert render_click(view, "select-component", %{"component" => "core"}) =~ "这一版没有可读的 manifest"
+    end
+
+    test "an artifact endpoint without a usable revision falls back to the newest" do
+      {:ok, _artifact} = publish_artifact()
+
+      assert get(build_conn(), "/workbench/architecture/art-1/artifact/html") |> response(200) =~ "<svg"
+      assert get(build_conn(), "/workbench/architecture/art-1/artifact/html?rev=abc") |> response(200) =~ "<svg"
+      assert get(build_conn(), "/workbench/architecture/art-1/artifact/html?rev=0") |> response(200) =~ "<svg"
+    end
+
+    test "the artifact endpoint reports a disabled workbench instead of serving bytes" do
+      write_workflow_file!(Workflow.workflow_file_path(),
+        tracker_kind: "memory",
+        tracker_api_token: nil,
+        tracker_project_slug: nil
+      )
+
+      assert get(build_conn(), "/workbench/architecture/art-1/artifact/html") |> response(404) =~ "workbench disabled"
+    end
+
+    test "the architecture page reports a disabled workbench" do
+      write_workflow_file!(Workflow.workflow_file_path(),
+        tracker_kind: "memory",
+        tracker_api_token: nil,
+        tracker_project_slug: nil
+      )
+
+      {:ok, _view, html} = live(build_conn(), "/workbench/architecture")
+
+      assert html =~ "工作台未启用"
+    end
   end
 end

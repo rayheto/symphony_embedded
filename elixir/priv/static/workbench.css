@@ -207,6 +207,20 @@ a { color: var(--sg-accent); }
   background: var(--sg-surface);
 }
 
+/* Pills always carry the word as well as the colour; the tint is a hint. */
+.wb-pill-ok { color: var(--sg-success); border-color: var(--sg-success-tint); background: var(--sg-success-tint); }
+.wb-pill-review { color: var(--sg-review); border-color: var(--sg-review-tint); background: var(--sg-review-tint); }
+.wb-pill-warning { color: var(--sg-warning); border-color: var(--sg-warning-tint); background: var(--sg-warning-tint); }
+
+/* The delivered diagram keeps its own presentation inside a sandboxed frame. */
+.wb-viewer {
+  width: 100%;
+  height: 560px;
+  border: 1px solid var(--sg-border);
+  border-radius: 12px;
+  background: var(--sg-inset);
+}
+
 /* Board is a display mapping: colour never carries a state on its own. */
 .wb-col-todo { color: var(--sg-secondary); }
 .wb-col-progress { color: var(--sg-warning); }

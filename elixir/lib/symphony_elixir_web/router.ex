@@ -37,6 +37,14 @@ defmodule SymphonyElixirWeb.Router do
     live("/workbench/devices", Workbench.DevicesLive, :index)
     live("/workbench/reviews", Workbench.ReviewsLive, :index)
     live("/workbench/reviews/:decision_id", Workbench.ReviewsLive, :show)
+    live("/workbench/architecture", Workbench.ArchitectureLive, :index)
+    live("/workbench/architecture/:artifact_id", Workbench.ArchitectureLive, :show)
+  end
+
+  # Delivered diagram bytes are served outside the browser pipeline: the frame
+  # that loads them must not carry the application's session or shell.
+  scope "/", SymphonyElixirWeb do
+    get("/workbench/architecture/:artifact_id/artifact/:kind", WorkbenchArchitectureController, :artifact)
   end
 
   scope "/", SymphonyElixirWeb do
