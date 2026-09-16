@@ -169,6 +169,39 @@ defmodule SymphonyElixir.WorkbenchConfigTest do
     assert Schema.resolve_path_token("/absolute/path") == "/absolute/path"
   end
 
+  test "parses a front matter whose values contain multi-byte characters" do
+    # 待 is E5 BE 85 in UTF-8; matching a bare 0x85 byte as a line break would
+    # split the character in half and fail the whole front matter.
+    path = Path.join(System.tmp_dir!(), "symphony-utf8-workflow-#{System.unique_integer([:positive])}.md")
+
+    File.write!(path, """
+    ---
+    tracker:
+      kind: "memory"
+    workspace:
+      root: "#{@workspace_root}"
+    workbench:
+      enabled: true
+      project_id: "embedded-lab"
+      data_root: "#{@data_root}"
+      display_states:
+        - "待办"
+        - "进行中"
+        - "待审阅"
+        - "已完成"
+    ---
+    Prompt
+    """)
+
+    on_exit(fn -> File.rm(path) end)
+
+    assert {:ok, workflow} = SymphonyElixir.Workflow.load(path)
+    assert workflow.config["workbench"]["display_states"] == ["待办", "进行中", "待审阅", "已完成"]
+
+    assert {:ok, settings} = Schema.parse(workflow.config)
+    assert settings.workbench.display_states == ["待办", "进行中", "待审阅", "已完成"]
+  end
+
   test "accepts workbench settings that are not a map" do
     assert {:error, {:invalid_workflow_config, _message}} =
              Schema.parse(%{"tracker" => %{"kind" => "memory"}, "workbench" => "enabled"})
