@@ -1,6 +1,8 @@
 defmodule SymphonyElixir.WorkbenchConfigTest do
   use ExUnit.Case, async: true
 
+  import SymphonyElixir.TestSupport, only: [restore_env: 2]
+
   alias SymphonyElixir.Config.Schema
 
   @data_root "/var/lib/symphony/evidence"
@@ -45,6 +47,72 @@ defmodule SymphonyElixir.WorkbenchConfigTest do
              Schema.parse(base(%{"enabled" => false, "mode" => "staging"}))
 
     assert message =~ "workbench.mode"
+  end
+
+  test "files mode needs an absolute record root" do
+    assert {:error, {:invalid_workflow_config, message}} =
+             Schema.parse(base(%{"enabled" => true, "project_id" => "open-cube", "data_root" => @data_root, "mode" => "files"}))
+
+    assert message =~ "workbench.record_root"
+
+    assert {:error, {:invalid_workflow_config, message}} =
+             Schema.parse(
+               base(%{
+                 "enabled" => true,
+                 "project_id" => "open-cube",
+                 "data_root" => @data_root,
+                 "mode" => "files",
+                 "record_root" => "ref/agent/runs"
+               })
+             )
+
+    assert message =~ "must be an absolute path"
+  end
+
+  test "a files project may name its bridge directory and the marker that scopes it" do
+    assert {:ok, settings} =
+             Schema.parse(
+               base(%{
+                 "enabled" => true,
+                 "project_id" => "open-cube",
+                 "data_root" => @data_root,
+                 "mode" => "files",
+                 "record_root" => "/srv/open-cube/ref/agent/runs",
+                 "bridge_tasks" => "/srv/bridge/tasks",
+                 "bridge_task_marker" => "rust-emb/open-cube"
+               })
+             )
+
+    assert settings.workbench.mode == "files"
+    assert settings.workbench.record_root == "/srv/open-cube/ref/agent/runs"
+    assert settings.workbench.bridge_tasks == "/srv/bridge/tasks"
+    assert settings.workbench.bridge_task_marker == "rust-emb/open-cube"
+  end
+
+  test "a record root given as an environment reference resolves or fails loudly" do
+    variable = "OPEN_CUBE_RECORDS_" <> Integer.to_string(System.unique_integer([:positive]))
+    restore_env(variable, nil)
+
+    files = fn record_root ->
+      base(%{
+        "enabled" => true,
+        "project_id" => "open-cube",
+        "data_root" => @data_root,
+        "mode" => "files",
+        "record_root" => record_root
+      })
+    end
+
+    assert {:error, {:invalid_workflow_config, message}} =
+             Schema.parse(files.("$#{variable}"))
+
+    assert message =~ "environment variable is not set"
+
+    restore_env(variable, "/srv/records")
+    assert {:ok, settings} = Schema.parse(files.("$#{variable}"))
+    assert settings.workbench.record_root == "/srv/records"
+
+    restore_env(variable, nil)
   end
 
   test "rejects a repeated display state" do

@@ -296,7 +296,7 @@ defmodule SymphonyElixir.Config.Schema do
 
     alias SymphonyElixir.Config.Schema
 
-    @modes ["live", "demo"]
+    @modes ["live", "demo", "files"]
 
     @type t :: %__MODULE__{}
 
@@ -311,6 +311,12 @@ defmodule SymphonyElixir.Config.Schema do
       field(:archify_root, :string)
       field(:display_states, {:array, :string}, default: [])
       field(:paused_state, :string)
+      # `files` mode reads an adopting project's own run records off disk, so it
+      # needs to know where they live and, optionally, where its task bridge
+      # writes its records.
+      field(:record_root, :string)
+      field(:bridge_tasks, :string)
+      field(:bridge_task_marker, :string)
     end
 
     @spec changeset(%__MODULE__{}, map()) :: Ecto.Changeset.t()
@@ -328,7 +334,10 @@ defmodule SymphonyElixir.Config.Schema do
             :device_config,
             :archify_root,
             :display_states,
-            :paused_state
+            :paused_state,
+            :record_root,
+            :bridge_tasks,
+            :bridge_task_marker
           ],
           empty_values: []
         )
@@ -342,8 +351,40 @@ defmodule SymphonyElixir.Config.Schema do
         changeset
         |> validate_required([:project_id, :data_root])
         |> validate_absolute_data_root()
+        |> validate_files_record_root()
       else
         changeset
+      end
+    end
+
+    # Only `files` mode needs a record root, and it must resolve to an absolute
+    # path for the same reason the data root does: a relative one would follow
+    # whoever started the process.
+    defp validate_files_record_root(changeset) do
+      if get_field(changeset, :mode) == "files" do
+        changeset
+        |> validate_required([:record_root])
+        |> validate_absolute_record_root()
+      else
+        changeset
+      end
+    end
+
+    defp validate_absolute_record_root(changeset) do
+      validate_change(changeset, :record_root, fn :record_root, raw ->
+        Schema.resolve_path_token(raw) |> record_root_error()
+      end)
+    end
+
+    defp record_root_error(nil) do
+      [record_root: "must resolve to an absolute path; the referenced environment variable is not set"]
+    end
+
+    defp record_root_error(resolved) do
+      if Path.type(resolved) == :absolute do
+        []
+      else
+        [record_root: "must be an absolute path so it cannot resolve into the workspace root"]
       end
     end
 
@@ -585,6 +626,8 @@ defmodule SymphonyElixir.Config.Schema do
     %{
       workbench
       | data_root: resolve_optional_path(workbench.data_root),
+        record_root: resolve_optional_path(workbench.record_root),
+        bridge_tasks: resolve_optional_path(workbench.bridge_tasks),
         domain_profile: resolve_optional_path(workbench.domain_profile),
         device_config: resolve_optional_path(workbench.device_config),
         archify_root: resolve_optional_path(workbench.archify_root)

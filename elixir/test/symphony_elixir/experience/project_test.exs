@@ -41,6 +41,26 @@ defmodule SymphonyElixir.Experience.ProjectTest do
     assert project.mode == "demo"
   end
 
+  test "selects the file-backed adapter for a project whose records live in its repository" do
+    write_workflow_file!(Workflow.workflow_file_path(),
+      tracker_kind: "memory",
+      tracker_api_token: nil,
+      tracker_project_slug: nil,
+      workbench:
+        workbench(%{
+          "mode" => "files",
+          "record_root" => "/srv/open-cube/ref/agent/runs",
+          "bridge_tasks" => "/srv/bridge/tasks"
+        })
+    )
+
+    assert {:ok, project} = Project.load()
+    assert project.mode == "files"
+    assert project.adapter == SymphonyElixir.Files.WorkbenchAdapter
+    assert project.record_root == "/srv/open-cube/ref/agent/runs"
+    assert project.bridge_tasks == "/srv/bridge/tasks"
+  end
+
   test "reports a disabled workbench as absent rather than broken" do
     write_workflow_file!(Workflow.workflow_file_path(),
       tracker_kind: "memory",

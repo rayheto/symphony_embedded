@@ -19,6 +19,8 @@ defmodule SymphonyElixir.Experience.Project do
     :store,
     :display_states,
     :data_root,
+    :record_root,
+    :bridge_tasks,
     :workspace_root,
     :domain_profile,
     :device_config,
@@ -34,6 +36,8 @@ defmodule SymphonyElixir.Experience.Project do
           store: GenServer.server(),
           display_states: [String.t()],
           data_root: String.t() | nil,
+          record_root: String.t() | nil,
+          bridge_tasks: String.t() | nil,
           workspace_root: String.t() | nil,
           domain_profile: String.t() | nil,
           device_config: String.t() | nil,
@@ -89,6 +93,8 @@ defmodule SymphonyElixir.Experience.Project do
       store: Keyword.get(opts, :store, SymphonyElixir.Experience.Store),
       display_states: workbench.display_states,
       data_root: workbench.data_root,
+      record_root: workbench.record_root,
+      bridge_tasks: workbench.bridge_tasks,
       workspace_root: settings.workspace.root,
       domain_profile: workbench.domain_profile,
       device_config: workbench.device_config,
@@ -98,6 +104,11 @@ defmodule SymphonyElixir.Experience.Project do
     }
   end
 
+  # Each mode names the provider that owns this project's issue truth. `live`
+  # reaches a hosted tracker through the Linear workbench adapter; `demo` is an
+  # isolated fixture; `files` reads the project's own records off disk, which is
+  # what an adopting project that keeps its truth in its repository needs.
   defp adapter_for("demo"), do: SymphonyElixir.Experience.DemoAdapter
+  defp adapter_for("files"), do: SymphonyElixir.Files.WorkbenchAdapter
   defp adapter_for(_live), do: SymphonyElixir.Linear.WorkbenchAdapter
 end
