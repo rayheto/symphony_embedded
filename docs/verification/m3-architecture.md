@@ -76,13 +76,14 @@ node bin/archify.mjs visual-check <output.html> --json
 | 受管嵌入式产品自身的源码架构图（TC10 的目标含义） | `blocked` | 环境中 `project.repo_url` / `revision` 为空（`docs/environment/environment.yaml`）；没有真实目标 repo 与 revision 就不能产出源码图，也不以宿主源码冒充 |
 | 计划图（plan） | `not_run` | 没有受管产品的设计材料来源可登记 |
 | 对比图（delta） | `not_run` | 需要 base/head 两个真实 revision 的 Archify compare 产物 |
-| 浏览器证据（TC11 的自动化部分） | `failed` | 该 artifact 的 HTML 引用 Google Fonts CDN；本环境的 Chrome 无法访问外部网络，`Page.loadEventFired` 15s 超时。按上游规则，运行时/采集失败不得改写成 `skipped`，也不影响已成功的 deliver |
-| 独立视觉审阅（TC17 的感知部分） | `not_run` | 需要人或有读图能力的审阅者实际看图 |
+| 浏览器证据（TC11 的自动化部分） | `pass` | `browser.receipt.json` 现在 `ok:true`/`status:pass`、`diagnostics` 为空，containment/readability/viewerChrome/captures 四个视口全过。**此前记的「字体 CDN 超时」不成立**：交付的 HTML 至今仍引用 Google Fonts，同一条 `visual-check` 却通过——真正的原因是所有导航都卡在拿 socket 之前（cookie 持久层的 keyring 调用不返回），见 `m5-visual.md` 的排查一节 |
+| 独立视觉审阅（TC17 的感知部分） | 已评审 | 五页 + 两张补拍的逐张读图评审在 `m5-visual.md`；其中「关键边界 3:1」与「44px 触控热区」记为未达标，见该文件的对照表 |
 | 真实 Agent 闭环发布 | `blocked` | 环境中没有可运行的 Codex（`docs/environment/environment.yaml`） |
 
-浏览器证据失败的复现：同一条命令在本环境必定超时；把 HTML 中的两条 `fonts.googleapis` /
-`gstatic` `<link>` 去掉后同一浏览器 0.5s 内完成渲染。这属于执行环境网络限制，不是产物缺陷，
-但也不据此声称浏览器证据通过。
+关于此前那次失败：当时观察到「去掉两条字体 `<link>` 后同一浏览器 0.5s 渲染完成」，据此归因到
+外部网络。该归因**已被推翻**——交付的 HTML 至今仍带着字体引用，`visual-check` 现在通过。
+当时那次「完成渲染」为什么成立，本轮没有再复现，因此不给解释；能复现的判据在 `m5-visual.md`：
+导航卡住的真正原因在 cookie 持久层，与网络无关。
 
 ## 门禁证据
 

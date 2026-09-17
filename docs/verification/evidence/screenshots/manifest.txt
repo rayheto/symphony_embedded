@@ -1,6 +1,8 @@
 page	path	bytes
 issues	/workbench/issues	100214
 devices	/workbench/devices	49615
+devices-serial	/workbench/devices?device=board-a&tab=serial	94726
 reviews	/workbench/reviews	50361
 architecture	/workbench/architecture	250871
+issue-evidence	/workbench/issues/EMB-46?tab=investigation	93407
 dashboard	/	87375
