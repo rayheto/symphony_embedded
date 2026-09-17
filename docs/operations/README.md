@@ -80,8 +80,55 @@ curl -sI http://192.168.100.254:4123/workbench/issues | head -1
 |---|---|---|
 | demo | `workbench.mode: "demo"` | 演示 provider；页面显示「演示数据」，不会冒充真实 Issue |
 | live | `workbench.mode: "live"` | 走宿主 tracker client；需要该 provider 的凭证 |
+| files | `workbench.mode: "files"` | 读工程自己仓库里的记录，**只读**；不需要 tracker 账号，见下 |
 
 缺凭证时不会回退到演示数据：`/workbench` 会说明工作台或 provider 不可用。
+
+### 工程自有记录（files 模式）
+
+有些工程没有 tracker 账号，工程真值就是仓库里的文件：每个任务一个 `task.md` / `handoff.md`，
+加上子任务桥接写在旁边的 JSON。这类工程把 provider 指到这些文件上，工作台只读它们：
+
+```yaml
+workbench:
+  enabled: true
+  mode: "files"
+  project_id: "open-cube"
+  data_root: "/home/seeed/.local/share/symphony/open-cube-emb/data"
+  record_root: "/home/seeed/rust-emb/open-cube/ref/agent/runs"
+  bridge_tasks: "/home/seeed/.codex/agent-bridge/tasks"   # 可选：桥接目录
+  bridge_task_marker: "rust-emb/open-cube"               # 可选：只认提到该串的任务
+```
+
+启动这套配置的方式与别的实例一样：
+
+```bash
+SHOT_WORKFLOW=/path/to/WORKFLOW.md mix run --no-start --no-halt scripts/workbench_server.exs
+```
+
+- 能力只有 `read`。创建 Issue、评论、改状态、暂停/恢复、workpad、原生链接全部**显式拒绝**
+  （`unsupported_capability`，拒绝理由随回执返回），工作台不往工程仓库里写任何东西；
+- 一条记录的状态是**记录自己的判词**（`complete` / `partial` / `blocked` / `failed` …）；写了
+  判词外的词或根本没写判词的记成 `delivered`（待审阅），不替它升级成通过；
+- Issue 一律 `dispatchable: false`：派发仍由 `tracker:` 决定，看板只是这些记录的投影；
+- 桥接目录是多工程共用的，`bridge_task_marker` 用来只认本工程的任务；不给 marker 就不过滤，
+  别的工程的任务也会上来。
+
+`record_root` 下的 id 归属按目录决定：
+
+| 形态 | 例子 | id 来自 |
+|---|---|---|
+| 根目录下的文件 | `t2.task.md`、`t2.handoff.md` | 标题里的 id，或文件名前缀 |
+| 目录里有裸文件名 | `t1/task.md`、`t1/handoff.md` | 目录名（handoff 文件名漂了也算这条） |
+| 目录里只有带名字的文件 | `family/a1.task.md` | 每个文件自己的名字 |
+
+最后一行是有意的：容器目录（一个目录放几十个任务）不会把几十条记录并成一条。
+
+`data_root` 不要放在 `/tmp` 下——它存的是工程记录，重启会把 `/tmp` 清掉。要把外部材料
+（验收报告、门禁素材、会话节选）一次性录进工作台，用
+`scripts/import_open_cube_acceptance.exs`：它先把素材按哈希复制成 blob（原件丢了也还在），
+再写 Evidence / ProblemCase / Validation，并在写入前按 `priv/workbench/agent-tools.json`
+逐条校验；复核不通过就中止导入，不落一份和当下事实不符的结论。
 
 ## 数据
 
@@ -149,9 +196,12 @@ workspace 就可能删掉证据。启动时校验，不满足就不启动工作�
 
 这些是**没有**验证过的部分，不要当成通过：
 
-- 浏览器侧验收（截图、对比度、键盘走查）在本环境做不了：Chrome 无法完成需要建立连接的页面
-  加载。见 `docs/verification/m5-visual.md`。
-- Archify 的 `visual-check` 同样失败（`docs/verification/m3-architecture.md`）。
+- 浏览器侧验收：截图与像素/对比度评审**已经做过**（`docs/verification/m5-visual.md`）；仍然没做的是
+  **键盘走查**与 1280 / 1920 两个宽度的回归（同文件第十一节）。
+- 本文件此前记过的两条已作废，别再照着读：「浏览器验收在本环境做不了」和「Archify 的
+  `visual-check` 同样失败」。真正的原因是所有导航卡在 cookie 持久层等 keyring 不返回，
+  加 `--password-store=basic` 即可；`browser.receipt.json` 现在是 `ok:true` / `status:pass`，
+  旧的「字体 CDN 超时」归因也已撤回（`docs/verification/m3-architecture.md`）。
 - 没有接入真实目标板，也没有可用的 Codex 与 Linear 测试项目；相关 gate 记为 `blocked`，
   没有用 PTY/演示数据代替（`docs/environment/environment.yaml`）。
 - Burrito 打包（`make release`）需要 `zig` 与 `xz`；本环境没有，只有
