@@ -6,3 +6,5 @@ reviews	/workbench/reviews	50361
 architecture	/workbench/architecture	250871
 issue-evidence	/workbench/issues/EMB-46?tab=investigation	93407
 dashboard	/	87375
+open-cube-issue-acceptance	/workbench/issues/p4_eaf_full_pass_7b31?tab=investigation	287913
+open-cube-board	/workbench/issues?q=p4_eaf_full_pass	54025
