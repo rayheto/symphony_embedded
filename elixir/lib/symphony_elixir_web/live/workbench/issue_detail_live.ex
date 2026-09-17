@@ -30,6 +30,7 @@ defmodule SymphonyElixirWeb.Workbench.IssueDetailLive do
            operations: [],
            problem_cases: [],
            evidence: [],
+           validations: [],
            native_url?: false,
            load_error: nil,
            unavailable: nil,
@@ -53,6 +54,7 @@ defmodule SymphonyElixirWeb.Workbench.IssueDetailLive do
            operations: [],
            problem_cases: [],
            evidence: [],
+           validations: [],
            native_url?: false,
            comment: "",
            form_error: nil,
@@ -279,6 +281,22 @@ defmodule SymphonyElixirWeb.Workbench.IssueDetailLive do
                 限制：{Enum.join(problem["limitations"], "；")}
               </p>
             </article>
+
+            <h2 class="wb-section-title">验收记录</h2>
+            <p :if={@validations == []} class="wb-muted">还没有针对这些假设的验收记录。</p>
+
+            <article :for={validation <- @validations} class="wb-card">
+              <p>
+                <span class="wb-pill">{validation["result"]}</span>
+                {validation["criteria"]}
+              </p>
+              <p class="wb-muted">
+                判据版本 {validation["criteria_revision"]} · 执行时间 {validation["executed_at"] || "未执行"}
+              </p>
+              <p :if={validation["limitations"] != []} class="wb-muted">
+                限制：{Enum.join(validation["limitations"], "；")}
+              </p>
+            </article>
           </article>
 
           <aside class="wb-panel">
@@ -372,7 +390,8 @@ defmodule SymphonyElixirWeb.Workbench.IssueDetailLive do
           events: [],
           operations: [],
           problem_cases: [],
-          evidence: []
+          evidence: [],
+          validations: []
         )
     end
   end
@@ -381,42 +400,90 @@ defmodule SymphonyElixirWeb.Workbench.IssueDetailLive do
     context = Query.context_for(project, view)
     {:ok, changes} = Query.changes_for(project, view)
 
+    # A case is what ties the rest of the engineering record to the issue: it
+    # names the issue, its claims name the evidence they rest on, and a
+    # validation names the claim it decided. Evidence and validations carry no
+    # back-reference to an issue in the contract, so the chain is followed
+    # rather than guessed.
+    problem_cases = ids_to_entities(project, "ProblemCase", context)
+    evidence = issue_evidence(project, context, problem_cases)
+    validations = issue_validations(project, problem_cases)
+    related = problem_cases ++ evidence ++ validations
+
     assign(socket,
       context: context,
       changes: changes,
-      events: issue_events(project, view, context),
+      events: issue_events(project, view, context, problem_cases, related),
       operations: Operations.list(project, %{issue_id: view.id}),
-      problem_cases: ids_to_entities(project, "ProblemCase", context),
-      evidence: ids_to_entities(project, "Evidence", context)
+      problem_cases: problem_cases,
+      evidence: evidence,
+      validations: validations
     )
   end
 
   # An engineering event names the record it is about, so the issue timeline is
-  # the union of events about the issue itself and about its related records.
-  defp issue_events(project, view, context) do
-    related = related_entity_ids(view, context)
+  # the union of events about the issue itself, about the records the page found
+  # through the case chain, and about the claims that chain rests on.
+  defp issue_events(project, view, context, problem_cases, related) do
+    known = related_entity_ids(view, context, problem_cases, related)
 
     case Query.events(project, %{limit: 500}) do
-      {:ok, page} -> Enum.filter(page["items"], &MapSet.member?(related, &1["entity_id"]))
+      {:ok, page} -> Enum.filter(page["items"], &MapSet.member?(known, &1["entity_id"]))
       _error -> []
     end
   end
 
-  defp related_entity_ids(view, context) do
+  defp related_entity_ids(view, context, problem_cases, related) do
     ids =
       Map.get(context, "problem_case_ids", []) ++
-        Map.get(context, "evidence_ids", []) ++ Map.get(context, "decision_ids", [])
+        Map.get(context, "evidence_ids", []) ++
+        Map.get(context, "decision_ids", []) ++
+        claim_ids(problem_cases) ++
+        Enum.map(related, & &1["id"])
 
     MapSet.new([view.id | ids])
+  end
+
+  defp claim_ids(problem_cases) do
+    for problem <- problem_cases, claim <- List.wrap(problem["claims"]), do: claim["id"]
+  end
+
+  # Both directions count: a claim that rests on a fragment and a claim the
+  # fragment refutes are both about that fragment.
+  defp cited_evidence_ids(problem_cases) do
+    for problem <- problem_cases,
+        claim <- List.wrap(problem["claims"]),
+        id <-
+          List.wrap(claim["supporting_evidence_ids"]) ++ List.wrap(claim["contradicting_evidence_ids"]),
+        do: id
   end
 
   # Reads the stored records once and keeps the ones the context named, so a
   # record that disappeared cannot be mistaken for one that was never there.
   defp ids_to_entities(project, type, context) do
     wanted = MapSet.new(Map.get(context, type_key(type), []))
+    list_entities(project, type, &MapSet.member?(wanted, &1.entity_id))
+  end
 
+  # A validation decides a claim, not an issue: the anchor the store holds is
+  # `claim_id`, so the issue's validations are the ones whose claim belongs to a
+  # problem case of this issue. A case with no claims still asks, so a store
+  # that cannot answer is reported the same way everywhere on the page.
+  defp issue_validations(project, problem_cases) do
+    wanted = MapSet.new(claim_ids(problem_cases))
+    list_entities(project, "Validation", &MapSet.member?(wanted, &1.payload["claim_id"]))
+  end
+
+  # The record's own reference and the claims that cite it are both ways an
+  # evidence item belongs to the issue; either is enough to show it.
+  defp issue_evidence(project, context, problem_cases) do
+    wanted = MapSet.new(Map.get(context, "evidence_ids", []) ++ cited_evidence_ids(problem_cases))
+    list_entities(project, "Evidence", &MapSet.member?(wanted, &1.entity_id))
+  end
+
+  defp list_entities(project, type, keep?) do
     case Query.list_entities(project, type) do
-      {:ok, records} -> Enum.filter(records, &MapSet.member?(wanted, &1.entity_id)) |> Enum.map(&entity_wire/1)
+      {:ok, records} -> records |> Enum.filter(keep?) |> Enum.map(&entity_wire/1)
       _error -> []
     end
   end
@@ -428,7 +495,6 @@ defmodule SymphonyElixirWeb.Workbench.IssueDetailLive do
   end
 
   defp type_key("ProblemCase"), do: "problem_case_ids"
-  defp type_key("Evidence"), do: "evidence_ids"
 
   @doc "The detail tabs, in display order."
   @spec tabs() :: [String.t()]

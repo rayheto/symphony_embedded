@@ -228,6 +228,16 @@ defmodule SymphonyElixirWeb.WorkbenchLiveTest do
     assert html =~ "serial"
     assert html =~ "available"
     assert html =~ "unseen"
+
+    # The claim is the other way an evidence item reaches the page: E-018 has no
+    # issue reference at all and is found only because a claim cites it.
+    assert html =~ "E-018 主机侧复现脚本输出"
+
+    # The validation names the claim, so the page finds it through the case
+    # rather than through an issue reference it does not have.
+    assert html =~ "刷新频率实验必须证明缓冲区复用假设不成立"
+    assert html =~ "inconclusive"
+    assert html =~ "只跑了一次，未复测。"
     assert render(view) =~ "尚未连接图像源" == false
   end
 
@@ -293,7 +303,7 @@ defmodule SymphonyElixirWeb.WorkbenchLiveTest do
               "id" => "claim-1",
               "statement" => "缓冲区可能在传输结束前被复用。",
               "status" => "hypothesis",
-              "supporting_evidence_ids" => [],
+              "supporting_evidence_ids" => ["E-017", "E-018"],
               "contradicting_evidence_ids" => [],
               "evidence_missing" => true,
               "limitations" => ["仅有日志片段"]
@@ -347,6 +357,50 @@ defmodule SymphonyElixirWeb.WorkbenchLiveTest do
           "review_status" => "unseen"
         },
         nil
+      )
+
+    {:ok, _} =
+      Store.append(
+        "embedded-lab-demo",
+        "Evidence",
+        "E-018",
+        0,
+        %{
+          "source_kind" => "host_test",
+          "title" => "E-018 主机侧复现脚本输出",
+          "raw" => [],
+          "source_refs" => [],
+          "binding" => %{"repo_revision" => nil, "test_profile" => "host_test"},
+          "captured_at" => nil,
+          "received_at" => "2026-09-14T10:40:00Z",
+          "capture_session_id" => nil,
+          "derivation_of" => [],
+          "limitations" => [],
+          "supersedes" => nil,
+          "content_status" => "available",
+          "review_status" => "unseen"
+        },
+        nil
+      )
+
+    {:ok, _} =
+      Store.append(
+        "embedded-lab-demo",
+        "Validation",
+        "VAL-3",
+        0,
+        %{
+          "claim_id" => "claim-1",
+          "evidence_ids" => ["E-017"],
+          "criteria" => "刷新频率实验必须证明缓冲区复用假设不成立",
+          "criteria_revision" => "acceptance-2026-09-14",
+          "binding" => %{"repo_revision" => nil, "test_profile" => "board_test"},
+          "result" => "inconclusive",
+          "executed_at" => "2026-09-14T11:02:00Z",
+          "command_record_sha256" => nil,
+          "limitations" => ["只跑了一次，未复测。"]
+        },
+        %{kind: "agent", id: "run-7", display_name: "Driver Agent"}
       )
 
     {:ok, _} =
@@ -459,6 +513,7 @@ defmodule SymphonyElixirWeb.WorkbenchLiveTest do
     assert html =~ "没有针对该 Issue 的操作。"
     assert html =~ "还没有问题分析记录。"
     assert html =~ "还没有证据记录。"
+    assert html =~ "还没有针对这些假设的验收记录。"
   end
 
   test "a create with no title is refused before reaching the provider" do
