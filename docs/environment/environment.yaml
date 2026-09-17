@@ -18,6 +18,22 @@ archify_notes:
     差 19px；按上游顺序压缩 IR 排版（行距收紧、边界 pad 24→18，不动节点尺寸与字号）后重出图，
     四个视口全部装得下，deliver 9/9、visual-check 退出 0。产物与 manifest 均为修复后这一版。
   - 产物：docs/architecture/symphony-embedded-workbench/
+network:
+  # 本机的可达地址，以及工作台演示实例实际绑定的位置（2026-09-17 实测）。
+  interfaces:
+    - br-lab      # 192.168.100.254/24
+    - wlp3s0      # 192.168.15.137/23
+    - tailscale0  # 100.105.223.12/32
+  workbench_bind: "0.0.0.0:4123"
+  verified_urls:
+    - "http://192.168.100.254:4123/workbench/issues -> 200"
+    - "http://192.168.15.137:4123/workbench/issues -> 200"
+    - "http://100.105.223.12:4123/workbench/issues -> 200"
+    - "http://121.37.249.127:13080/workbench/issues -> 200 (frpc -> 127.0.0.1:4123)"
+  notes:
+    - 该地址下 1440x900 渲染与 127.0.0.1 逐字节相同（sha256 与已入库的 issues.png 一致）。
+    - 工作台无鉴权且 config/config.exs 为 check_origin:false，/live/websocket 接受任意 Origin
+      （已用 curl 实测 101）；绑 0.0.0.0 之前请确认暴露面，见 docs/operations/README.md。
 host:
   os: Ubuntu 24.04.4 LTS (Linux 7.0.0-31-generic)
   architecture: x86_64

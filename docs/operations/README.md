@@ -51,6 +51,29 @@ cd /path/to/workflow-dir       # 目录里要有 WORKFLOW.md
 CLI 默认读当前目录的 `WORKFLOW.md`，也可以显式给路径：
 `bin/symphony start`（release 形态）或 `bin/symphony <WORKFLOW.md>`（Burrito CLI 形态）。
 
+### 监听地址与局域网访问
+
+默认 `server.host: "127.0.0.1"`，只有本机能访问。要让同网段访问，把 host 改成本机地址或
+`0.0.0.0`，再重启：
+
+```yaml
+server:
+  port: 4123
+  host: "0.0.0.0"        # 所有 IPv4 接口；也可以只写一个地址，如 "192.168.100.254"
+```
+
+```sh
+ss -ltn | grep 4123                                    # 应显示 0.0.0.0:4123
+curl -sI http://192.168.100.254:4123/workbench/issues | head -1
+```
+
+- `0.0.0.0` 覆盖所有接口（有线/无线/tailscale/网桥），**同时仍然服务 `127.0.0.1`**，所以
+  frpc 之类的本地转发不受影响；只写某一个地址则只有该接口可达。
+- **工作台没有鉴权**，而且 `config/config.exs` 里是 `check_origin: false`：能访问到该端口的人
+  就能读全部记录，也能触发页面上的写操作（新建 Issue、开始采集等），跨站页面同样能与
+  `/live/websocket` 完成握手。绑 `0.0.0.0` 之前先确认这就是你要的暴露面，必要时用防火墙把
+  来源限制到固定网段。
+
 ### 演示与真实
 
 | 模式 | 触发 | 说明 |
